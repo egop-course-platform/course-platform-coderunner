@@ -1,4 +1,4 @@
-﻿-- +goose NO TRANSACTION
+-- +goose NO TRANSACTION
 
 -- +goose Up
 
