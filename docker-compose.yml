@@ -1,0 +1,18 @@
+version: "3"
+
+networks:
+  course-platform:
+    external: true
+
+services:
+  coderunner:
+    container_name: coderunner
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      ASPNETCORE_URLS: "http://+:80"
+      ConnectionStrings__Kafka: "kafka:9092"
+      ConnectionStrings__Postgres: "Host=postgres;Port=5432;Username=postgres;Password=root;Database=Coderunner;"
+    networks: 
+      - course-platform

@@ -1,0 +1,53 @@
+name: Deploy to birdegop.ru
+
+on:
+  push:
+    branches: [ "master", "develop" ]
+
+jobs:        
+  deploy:
+    runs-on: self-hosted
+    steps:
+      - name: checkout repo
+        uses: actions/checkout@v3
+      - name: create compose override
+        env:
+          POSTGRES_USER: ${{ secrets.POSTGRES_USER }}
+          POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
+        run: |
+          echo 'services:' > docker-compose.override.yml
+          echo '  coderunner:' >> docker-compose.override.yml
+          echo '    environment:' >> docker-compose.override.yml
+          echo "      ConnectionStrings__Postgres: \"Host=postgres;Port=5432;Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD};Database=Coderunner\"" >> docker-compose.override.yml
+      - name: dryrun migrations
+        continue-on-error: false
+        env:
+          POSTGRES_USER: ${{ secrets.POSTGRES_USER }}
+          POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
+        run: |
+          docker run --rm -v ./migrations:/migrations --network course-platform \
+            -e GOOSE_COMMAND="status" \
+            -e GOOSE_DRIVER="postgres" \
+            -e GOOSE_DBSTRING="host=postgres port=5432 user=${POSTGRES_USER} password=${POSTGRES_PASSWORD} dbname=Coderunner sslmode=disable" \
+            ghcr.io/kukymbr/goose-docker:latest
+      - name: run migrations
+        env:
+          POSTGRES_USER: ${{ secrets.POSTGRES_USER }}
+          POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
+        run: |
+          docker run --rm -v ./migrations:/migrations --network course-platform \
+            -e GOOSE_COMMAND="up" \
+            -e GOOSE_DRIVER="postgres" \
+            -e GOOSE_DBSTRING="host=postgres port=5432 user=${POSTGRES_USER} password=${POSTGRES_PASSWORD} dbname=Coderunner sslmode=disable" \
+            ghcr.io/kukymbr/goose-docker:latest
+      - name: create outbox topic
+        run: >- 
+          docker exec kafka 
+           kafka-topics.sh --create 
+           --topic coderunner_outbox
+           --partitions 1 
+           --replication-factor 1 
+           --if-not-exists
+           --bootstrap-server kafka:9092
+      - name: docker compose
+        run: docker compose -f docker-compose.yml -f docker-compose.override.yml up --build --detach
