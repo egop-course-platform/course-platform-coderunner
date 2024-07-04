@@ -25,7 +25,7 @@ jobs:
           POSTGRES_USER: ${{ secrets.POSTGRES_USER }}
           PGPASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
         run: |
-          docker exec -i postgres psql -t -U "${POSTGRES_USER}" -W -d postgres -c "CREATE DATABASE Coderunner;"
+          docker exec -i postgres psql -t -U "${POSTGRES_USER}" -W -c "CREATE DATABASE Coderunner;" -h localhost -d postgres
       - name: dryrun migrations
         continue-on-error: false
         env:
