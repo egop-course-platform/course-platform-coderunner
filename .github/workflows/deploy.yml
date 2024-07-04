@@ -19,6 +19,13 @@ jobs:
           echo '  coderunner:' >> docker-compose.override.yml
           echo '    environment:' >> docker-compose.override.yml
           echo "      ConnectionStrings__Postgres: \"Host=postgres;Port=5432;Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD};Database=Coderunner\"" >> docker-compose.override.yml
+      - name: create database
+        continue-on-error: true
+        env:
+          POSTGRES_USER: ${{ secrets.POSTGRES_USER }}
+          POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
+        run: |
+          docker exec -it postgres psql -tc -U "${POSTGRES_USER}" -W "${POSTGRES_PASSWORD}" "CREATE DATABASE Coderunner;"
       - name: dryrun migrations
         continue-on-error: false
         env:
