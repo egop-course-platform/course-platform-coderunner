@@ -49,12 +49,14 @@ jobs:
             ghcr.io/kukymbr/goose-docker:latest
       - name: create outbox topic
         run: >- 
-          docker exec kafka 
+          docker exec -i kafka 
+          sh -c "
            kafka-topics.sh --create 
            --topic coderunner_outbox
            --partitions 1 
            --replication-factor 1 
            --if-not-exists
            --bootstrap-server kafka:9092
+          "
       - name: docker compose
         run: docker compose -f docker-compose.yml -f docker-compose.override.yml up --build --detach
