@@ -14,5 +14,7 @@ services:
       ASPNETCORE_URLS: "http://+:80"
       ConnectionStrings__Kafka: "kafka:9092"
       ConnectionStrings__Postgres: "Host=postgres;Port=5432;Username=postgres;Password=root;Database=Coderunner;"
+    ports: 
+      - "10080:80"
     networks: 
       - course-platform
