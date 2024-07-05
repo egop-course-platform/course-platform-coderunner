@@ -4,7 +4,7 @@
 
 CREATE TABLE IF NOT EXISTS "coderuns"
 (
-    id           bigserial primary key,
+    id           uuid primary key,
     code         text,
     scheduled_at timestamp without time zone
 );
