@@ -17,15 +17,17 @@ public class OutboxCleaner : BackgroundService
     {
         while (!stoppingToken.IsCancellationRequested)
         {
-            await using var scope = _serviceProvider.CreateAsyncScope();
+            {
+                await using var scope = _serviceProvider.CreateAsyncScope();
 
-            await using var context = scope.ServiceProvider.GetRequiredService<CoderunnerDbContext>();
+                using var context = scope.ServiceProvider.GetRequiredService<CoderunnerDbContext>();
 
-            var cleanMoment = DateTime.UtcNow.AddDays(-7);
+                var cleanMoment = DateTime.UtcNow.AddDays(-7);
 
-            await context.OutboxEvents
-                .Where(x => InterestedEvents.Contains(x.Status) && x.Date <= cleanMoment)
-                .DeleteAsync(token: stoppingToken);
+                await context.OutboxEvents
+                    .Where(x => x.Date <= cleanMoment && InterestedEvents.Contains(x.Status))
+                    .DeleteAsync(token: stoppingToken);
+            }
 
             await Task.Delay(60_000, stoppingToken);
         }
