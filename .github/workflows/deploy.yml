@@ -23,6 +23,7 @@ jobs:
         continue-on-error: true
         env:
           POSTGRES_USER: ${{ secrets.POSTGRES_USER }}
+          # psql uses PGPASSWORD implicitly, when -W flag is set, otherwise requests it interactively
           PGPASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
         run: |
           docker exec -i postgres sh -c "psql -t -U \"${POSTGRES_USER}\" -W -c \"CREATE DATABASE \\\"Coderunner\\\";\" -h localhost -d postgres"

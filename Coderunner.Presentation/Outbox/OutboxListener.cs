@@ -17,25 +17,27 @@ public class OutboxListener : BackgroundService
     {
         while (!stoppingToken.IsCancellationRequested)
         {
-            await using var scope = _serviceProvider.CreateAsyncScope();
-
-            await using var context = scope.ServiceProvider.GetRequiredService<CoderunnerDbContext>();
-            var producer = scope.ServiceProvider.GetRequiredService<OutboxEventProducer>();
-
-            var events = await context.OutboxEvents.Where(x => InterestedEvents.Contains(x.Status))
-                .OrderBy(x => x.Date)
-                .ThenBy(x => x.Id)
-                .ToListAsync(token: stoppingToken);
-            
-            foreach (var entry in events)
             {
-                var result = await producer.Produce(entry.Key, entry.Payload, stoppingToken);
+                await using var scope = _serviceProvider.CreateAsyncScope();
 
-                if (result)
+                using var context = scope.ServiceProvider.GetRequiredService<CoderunnerDbContext>();
+                var producer = scope.ServiceProvider.GetRequiredService<OutboxEventProducer>();
+
+                var events = await context.OutboxEvents.Where(x => InterestedEvents.Contains(x.Status))
+                    .OrderBy(x => x.Date)
+                    .ThenBy(x => x.Id)
+                    .ToListAsync(token: stoppingToken);
+
+                foreach (var entry in events)
                 {
-                    await context.OutboxEvents.Where(x => x.Id == entry.Id)
-                        .Set(x => x.Status, "Sent")
-                        .UpdateAsync(token: stoppingToken);
+                    var result = await producer.Produce(entry.Key, entry.Payload, stoppingToken);
+
+                    if (result)
+                    {
+                        await context.OutboxEvents.Where(x => x.Id == entry.Id)
+                            .Set(x => x.Status, "Sent")
+                            .UpdateAsync(token: stoppingToken);
+                    }
                 }
             }
 
