@@ -16,7 +16,7 @@ public static class LinqToDbMappingSchema
 
         builder.Entity<CodeRun>()
             .HasSchemaName("public")
-            .HasTableName("runs")
+            .HasTableName("coderuns")
             .HasIdentity(x => x.Id)
             .HasPrimaryKey(x => x.Id)
             .Property(x => x.Id)
