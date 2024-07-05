@@ -37,7 +37,7 @@ builder.Services.AddLinqToDBContext<CoderunnerDbContext>(
                 throw new InvalidOperationException("Postgres connection string was not set")
             )
             .UseDefaultLogging(provider)
-            .UseTraceLevel(TraceLevel.Info)
+            .UseTraceLevel(TraceLevel.Warning)
             .UseMappingSchema(LinqToDbMappingSchema.Current)
 );
 
