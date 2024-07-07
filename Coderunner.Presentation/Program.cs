@@ -38,6 +38,8 @@ builder.Services
 
 var app = builder.Build();
 
+app.UsePathBase("/coderunner");
+
 app.MapPost(
     "/schedule",
     async ([FromBody] ScheduleCodeRunRequest request, CoderunnerDbContext context, IOutbox outbox, CancellationToken cancellationToken) =>
