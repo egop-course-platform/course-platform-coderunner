@@ -1,7 +1,6 @@
-﻿using System.Text.Json;
-using LinqToDB.Mapping;
+﻿using LinqToDB.Mapping;
 
-namespace Coderunner.Presentation.Outbox;
+namespace Coderunner.DistributedOutbox.Linq2Db;
 
 public static class LinqToDbExtensions
 {

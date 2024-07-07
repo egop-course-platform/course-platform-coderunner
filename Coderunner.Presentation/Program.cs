@@ -1,10 +1,12 @@
 using System.Diagnostics;
 using System.Transactions;
+using Coderunner.DistributedOutbox;
+using Coderunner.DistributedOutbox.Kafka;
+using Coderunner.DistributedOutbox.Linq2Db;
 using Coderunner.Presentation;
 using Coderunner.Presentation.Dtos;
+using Coderunner.Presentation.Events;
 using Coderunner.Presentation.Models;
-using Coderunner.Presentation.Outbox;
-using Coderunner.Presentation.Outbox.Events;
 using Confluent.Kafka;
 using LinqToDB;
 using LinqToDB.AspNet;
@@ -27,8 +29,6 @@ builder.Services.AddSingleton<IEgopProducer, EgopProducer>(
     )
 );
 
-builder.Services.AddSingleton<OutboxEventProducer>();
-
 builder.Services.AddLinqToDBContext<CoderunnerDbContext>(
     (provider, options) =>
         options.UseConnectionString(
@@ -39,12 +39,12 @@ builder.Services.AddLinqToDBContext<CoderunnerDbContext>(
             .UseDefaultLogging(provider)
             .UseTraceLevel(TraceLevel.Warning)
             .UseMappingSchema(LinqToDbMappingSchema.Current)
+).WithLinq2DbOutbox<CoderunnerDbContext>()
+    .WithKafkaProducer(
+    builder.Configuration.GetConnectionString("Kafka")
+    ?? throw new InvalidOperationException("Kafka connection string was not configured"),
+    "coderunner"
 );
-
-builder.Services.AddHostedService<OutboxCleaner>();
-builder.Services.AddHostedService<OutboxListener>();
-
-builder.Services.AddScoped<IOutbox, Outbox>();
 
 var app = builder.Build();
 

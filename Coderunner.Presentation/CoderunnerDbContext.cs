@@ -1,10 +1,10 @@
-﻿using Coderunner.Presentation.Models;
-using Coderunner.Presentation.Outbox;
+﻿using Coderunner.DistributedOutbox.Linq2Db;
+using Coderunner.Presentation.Models;
 using LinqToDB;
 
 namespace Coderunner.Presentation;
 
-public class CoderunnerDbContext : DataContext
+public class CoderunnerDbContext : OutboxDbContext
 {
     public CoderunnerDbContext(DataOptions options) :
         base(options)
@@ -12,10 +12,7 @@ public class CoderunnerDbContext : DataContext
         (this as IDataContext).CloseAfterUse = true;
 
         Runs = this.GetTable<CodeRun>();
-        OutboxEvents = this.GetTable<OutboxDbEntry>();
     }
 
     public ITable<CodeRun> Runs { get; }
-
-    public ITable<OutboxDbEntry> OutboxEvents { get; }
 }

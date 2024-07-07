@@ -1,16 +1,21 @@
 ﻿using LinqToDB;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 
-namespace Coderunner.Presentation.Outbox;
+namespace Coderunner.DistributedOutbox.Linq2Db;
 
-public class OutboxListener : BackgroundService
+internal class OutboxListenerService : BackgroundService
 {
     private readonly IServiceProvider _serviceProvider;
+    private readonly ILogger<OutboxListenerService> _logger;
 
     private static readonly string[] InterestedEvents = ["New", "Failed"];
 
-    public OutboxListener(IServiceProvider serviceProvider)
+    public OutboxListenerService(IServiceProvider serviceProvider, ILogger<OutboxListenerService> logger)
     {
         _serviceProvider = serviceProvider;
+        _logger = logger;
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -20,8 +25,8 @@ public class OutboxListener : BackgroundService
             {
                 await using var scope = _serviceProvider.CreateAsyncScope();
 
-                using var context = scope.ServiceProvider.GetRequiredService<CoderunnerDbContext>();
-                var producer = scope.ServiceProvider.GetRequiredService<OutboxEventProducer>();
+                using var context = scope.ServiceProvider.GetRequiredService<OutboxDbContext>();
+                var producer = scope.ServiceProvider.GetRequiredService<IOutboxEventProducer>();
 
                 var events = await context.OutboxEvents.Where(x => InterestedEvents.Contains(x.Status))
                     .OrderBy(x => x.Date)
@@ -37,6 +42,11 @@ public class OutboxListener : BackgroundService
                         await context.OutboxEvents.Where(x => x.Id == entry.Id)
                             .Set(x => x.Status, "Sent")
                             .UpdateAsync(token: stoppingToken);
+                        _logger.LogInformation("Sent outbox event");
+                    }
+                    else
+                    {
+                        _logger.LogWarning("Failed sending outbox events to topic");
                     }
                 }
             }

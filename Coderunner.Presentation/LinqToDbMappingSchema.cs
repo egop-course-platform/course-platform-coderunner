@@ -1,5 +1,5 @@
-﻿using Coderunner.Presentation.Models;
-using Coderunner.Presentation.Outbox;
+﻿using Coderunner.DistributedOutbox.Linq2Db;
+using Coderunner.Presentation.Models;
 using LinqToDB.Mapping;
 
 namespace Coderunner.Presentation;

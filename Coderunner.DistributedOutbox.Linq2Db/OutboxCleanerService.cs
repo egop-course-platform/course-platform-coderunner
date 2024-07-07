@@ -1,14 +1,16 @@
 ﻿using LinqToDB;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 
-namespace Coderunner.Presentation.Outbox;
+namespace Coderunner.DistributedOutbox.Linq2Db;
 
-public class OutboxCleaner : BackgroundService
+public class OutboxCleanerService : BackgroundService
 {
     private readonly IServiceProvider _serviceProvider;
 
     private static readonly string[] InterestedEvents = ["Sent"];
 
-    public OutboxCleaner(IServiceProvider serviceProvider)
+    public OutboxCleanerService(IServiceProvider serviceProvider)
     {
         _serviceProvider = serviceProvider;
     }
@@ -20,7 +22,7 @@ public class OutboxCleaner : BackgroundService
             {
                 await using var scope = _serviceProvider.CreateAsyncScope();
 
-                using var context = scope.ServiceProvider.GetRequiredService<CoderunnerDbContext>();
+                using var context = scope.ServiceProvider.GetRequiredService<OutboxDbContext>();
 
                 var cleanMoment = DateTime.UtcNow.AddDays(-7);
 

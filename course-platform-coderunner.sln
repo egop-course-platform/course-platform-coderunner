@@ -11,6 +11,12 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "meta", "meta", "{C87FE33B-6
 								.github\workflows\deploy.yml = .github\workflows\deploy.yml
 	EndProjectSection
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Coderunner.DistributedOutbox", "Coderunner.DistributedOutbox\Coderunner.DistributedOutbox.csproj", "{B22A2B87-AD63-44D3-A8D2-3FAD670639D5}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Coderunner.DistributedOutbox.Linq2Db", "Coderunner.DistributedOutbox.Linq2Db\Coderunner.DistributedOutbox.Linq2Db.csproj", "{A37E0A28-15A5-46DB-A269-BA17C0113573}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Coderunner.DistributedOutbox.Kafka", "Coderunner.DistributedOutbox.Kafka\Coderunner.DistributedOutbox.Kafka.csproj", "{5DC3C63F-1082-40E7-B6AC-173260CEA8E5}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -21,5 +27,17 @@ Global
 		{BCE92952-BBBE-4905-A0FE-901B80311039}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{BCE92952-BBBE-4905-A0FE-901B80311039}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{BCE92952-BBBE-4905-A0FE-901B80311039}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B22A2B87-AD63-44D3-A8D2-3FAD670639D5}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B22A2B87-AD63-44D3-A8D2-3FAD670639D5}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B22A2B87-AD63-44D3-A8D2-3FAD670639D5}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B22A2B87-AD63-44D3-A8D2-3FAD670639D5}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A37E0A28-15A5-46DB-A269-BA17C0113573}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A37E0A28-15A5-46DB-A269-BA17C0113573}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A37E0A28-15A5-46DB-A269-BA17C0113573}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A37E0A28-15A5-46DB-A269-BA17C0113573}.Release|Any CPU.Build.0 = Release|Any CPU
+		{5DC3C63F-1082-40E7-B6AC-173260CEA8E5}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{5DC3C63F-1082-40E7-B6AC-173260CEA8E5}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{5DC3C63F-1082-40E7-B6AC-173260CEA8E5}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{5DC3C63F-1082-40E7-B6AC-173260CEA8E5}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal

@@ -1,18 +1,13 @@
-﻿using System.Text.Json;
+using System.Text.Json;
 using LinqToDB;
 
-namespace Coderunner.Presentation.Outbox;
+namespace Coderunner.DistributedOutbox.Linq2Db;
 
-public interface IOutbox
+internal class Linq2DbOutbox : IOutbox
 {
-    Task AddEventAsync(IOutboxEvent ev, CancellationToken cancellationToken);
-}
+    private readonly OutboxDbContext _context;
 
-public class Outbox : IOutbox
-{
-    private readonly CoderunnerDbContext _context;
-
-    public Outbox(CoderunnerDbContext context)
+    public Linq2DbOutbox(OutboxDbContext context)
     {
         _context = context;
     }

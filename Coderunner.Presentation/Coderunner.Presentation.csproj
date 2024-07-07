@@ -19,4 +19,10 @@
       <PackageReference Include="Npgsql" Version="8.0.3" />
     </ItemGroup>
 
+    <ItemGroup>
+      <ProjectReference Include="..\Coderunner.DistributedOutbox.Kafka\Coderunner.DistributedOutbox.Kafka.csproj" />
+      <ProjectReference Include="..\Coderunner.DistributedOutbox.Linq2Db\Coderunner.DistributedOutbox.Linq2Db.csproj" />
+      <ProjectReference Include="..\Coderunner.DistributedOutbox\Coderunner.DistributedOutbox.csproj" />
+    </ItemGroup>
+
 </Project>

@@ -1,4 +1,4 @@
-﻿namespace Coderunner.Presentation.Outbox;
+﻿namespace Coderunner.DistributedOutbox;
 
 public interface IOutboxEvent
 {
