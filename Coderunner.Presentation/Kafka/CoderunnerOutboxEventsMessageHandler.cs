@@ -47,7 +47,7 @@ public class CoderunnerOutboxEventsMessageHandler : IMessageHandler<CoderunnerOu
 
             var buildResult = await DockerBuild2(codeRun.Id, cancellationToken);
 
-            _logger.LogInformation("Build finished: {stdout}. {stderr}", buildResult.stdout, buildResult.stderr);
+            _logger.LogInformation("Build finished: stdout={stdout}. stderr={stderr}", buildResult.stdout, buildResult.stderr);
             
             if (buildResult.stdout.Contains("error"))
             {
@@ -59,7 +59,7 @@ public class CoderunnerOutboxEventsMessageHandler : IMessageHandler<CoderunnerOu
         }
         finally
         {
-            Directory.Delete(runPath, true);
+            // Directory.Delete(runPath, true);
         }
     }
 
