@@ -23,7 +23,7 @@ public class EgopConsumerService<T> : BackgroundService
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
         await _warmup.WaitWarmup();
-        
+
         using var consumer = new ConsumerBuilder<Ignore, byte[]>(_consumerConfig)
             .Build();
 
@@ -31,18 +31,28 @@ public class EgopConsumerService<T> : BackgroundService
 
         while (!stoppingToken.IsCancellationRequested)
         {
-            var consumeResult = consumer.Consume(stoppingToken);
+            try
+            {
+                var consumeResult = consumer.Consume(stoppingToken);
 
-            var deserializer = _serviceProvider.GetRequiredService<IEgopDeserializer<T>>();
+                var deserializer = _serviceProvider.GetRequiredService<IEgopDeserializer<T>>();
 
-            var content = consumeResult.Message.Value;
-            var message = deserializer.Deserialize(content);
+                var content = consumeResult.Message.Value;
+                var message = deserializer.Deserialize(content);
 
-            await using var serviceScope = _serviceProvider.CreateAsyncScope();
+                await using var serviceScope = _serviceProvider.CreateAsyncScope();
 
-            var messageHandler = serviceScope.ServiceProvider.GetRequiredService<IMessageHandler<T>>();
+                var messageHandler = serviceScope.ServiceProvider.GetRequiredService<IMessageHandler<T>>();
 
-            await messageHandler.Handle(message, stoppingToken);
+                await messageHandler.Handle(message, stoppingToken);
+            }
+            catch (OperationCanceledException ex)
+            {
+                _logger.LogWarning(
+                    "Consumer on {topic} caught cancellation token",
+                    _options.Value.Topic
+                );
+            }
         }
 
         consumer.Close();
