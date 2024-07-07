@@ -19,6 +19,8 @@ jobs:
           echo '  coderunner:' >> docker-compose.override.yml
           echo '    environment:' >> docker-compose.override.yml
           echo "      ConnectionStrings__Postgres: \"Host=postgres;Port=5432;Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD};Database=Coderunner\"" >> docker-compose.override.yml
+          echo '    volumes:' >> docker-compose.override.yml
+          echo '      - /var/run/docker.sock:/var/run/docker.sock' >> docker-compose.override.yml
       - name: create database
         continue-on-error: true
         env:
