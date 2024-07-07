@@ -1,4 +1,3 @@
-using System.Diagnostics;
 using System.Transactions;
 using Coderunner.DistributedOutbox;
 using Coderunner.DistributedOutbox.Kafka;
@@ -6,45 +5,36 @@ using Coderunner.DistributedOutbox.Linq2Db;
 using Coderunner.Presentation;
 using Coderunner.Presentation.Dtos;
 using Coderunner.Presentation.Events;
+using Coderunner.Presentation.Kafka;
 using Coderunner.Presentation.Models;
-using Confluent.Kafka;
 using LinqToDB;
-using LinqToDB.AspNet;
-using LinqToDB.AspNet.Logging;
-using LinqToDB.DataProvider.PostgreSQL;
 using Microsoft.AspNetCore.Mvc;
+using Serilog;
 
 var builder = WebApplication.CreateBuilder(args);
+builder.Host
+    .UseSerilog(
+        (builderContext, config) => { config.ReadFrom.Configuration(builderContext.Configuration); }
+    );
+builder.Services.AddWarmup();
 
-builder.Services.AddSingleton<IEgopProducer, EgopProducer>(
-    x => new EgopProducer(
-        new ProducerBuilder<string, string>(
-            new ProducerConfig()
-            {
-                BootstrapServers = builder.Configuration.GetConnectionString("Kafka")
-                                   ?? throw new InvalidOperationException("Kafka connection string was not configured"),
-                ClientId = "coderunner"
-            }
-        ).Build()
-    )
-);
-
-builder.Services.AddLinqToDBContext<CoderunnerDbContext>(
-    (provider, options) =>
-        options.UseConnectionString(
-                PostgreSQLTools.GetDataProvider(PostgreSQLVersion.v95),
-                builder.Configuration.GetConnectionString("Postgres") ??
-                throw new InvalidOperationException("Postgres connection string was not set")
-            )
-            .UseDefaultLogging(provider)
-            .UseTraceLevel(TraceLevel.Warning)
-            .UseMappingSchema(LinqToDbMappingSchema.Current)
-).WithLinq2DbOutbox<CoderunnerDbContext>()
+builder.Services
+    .AddDatabase(builder.Configuration)
+    .WithLinq2DbOutbox<CoderunnerDbContext>()
     .WithKafkaProducer(
-    builder.Configuration.GetConnectionString("Kafka")
-    ?? throw new InvalidOperationException("Kafka connection string was not configured"),
-    "coderunner"
-);
+        builder.Configuration.GetConnectionString("Kafka")
+        ?? throw new InvalidOperationException("Kafka connection string was not configured"),
+        "coderunner"
+    );
+
+builder.Services.AddDefaultConsumer(builder.Configuration);
+
+builder.Services
+    .Consume<CoderunnerOutboxEventsMessage>()
+    .WithTopicName("coderunner_outbox_events")
+    .WithHandler<CoderunnerOutboxEventsMessageHandler>()
+    .WithDeserializer<Utf8JsonDeserializer<CoderunnerOutboxEventsMessage>>()
+    .Register();
 
 var app = builder.Build();
 

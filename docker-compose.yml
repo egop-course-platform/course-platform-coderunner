@@ -14,6 +14,17 @@ services:
       ASPNETCORE_URLS: "http://+:80"
       ConnectionStrings__Kafka: "kafka:9092"
       ConnectionStrings__Postgres: "Host=postgres;Port=5432;Username=postgres;Password=root;Database=Coderunner;"
+      
+      Serilog__MinimumLevel: 'Information'
+      Serilog__Using__0: 'Serilog.Sinks.Seq'
+      Serilog__WriteTo__0__Name: 'Seq'
+      Serilog__WriteTo__0__Args__serverUrl: 'http://seq'
+      Serilog__WriteTo__0__Args__apiKey: 'C9sF3T6Lp1kR0j7v'
+      Serilog__Enrich__0: 'FromLogContext'
+      
+      Serilog__Using__1: 'Serilog.Sinks.Console'
+      Serilog__WriteTo__1__Name: 'Console'
+      Serilog__Enrich__1: 'FromLogContext'
     ports: 
       - "10080:80"
     networks: 
