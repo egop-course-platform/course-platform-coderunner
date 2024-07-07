@@ -1,3 +1,5 @@
+using Coderunner.Core;
+
 namespace Coderunner.Presentation;
 
 public class Warmup : IWarmup
@@ -12,9 +14,13 @@ public class Warmup : IWarmup
         lifetime.ApplicationStarted.Register(() => _taskCompletionSource.SetResult());
     }
 
-    public async Task WaitWarmup()
+    private Task? _wrapper;
+
+    public Task WaitWarmup()
     {
-        await _taskCompletionSource.Task;
-        _logger.LogInformation("Warmup complete");
+        return _wrapper ??= _taskCompletionSource.Task.ContinueWith(
+            _ =>
+                _logger.LogInformation("Warmup complete")
+        );
     }
 }

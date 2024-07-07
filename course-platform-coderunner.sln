@@ -17,6 +17,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Coderunner.DistributedOutbo
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Coderunner.DistributedOutbox.Kafka", "Coderunner.DistributedOutbox.Kafka\Coderunner.DistributedOutbox.Kafka.csproj", "{5DC3C63F-1082-40E7-B6AC-173260CEA8E5}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Coderunner.Core", "Coderunner.Core\Coderunner.Core.csproj", "{8F26E967-30E9-42CB-A708-B763705FE3E2}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -39,5 +41,9 @@ Global
 		{5DC3C63F-1082-40E7-B6AC-173260CEA8E5}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{5DC3C63F-1082-40E7-B6AC-173260CEA8E5}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{5DC3C63F-1082-40E7-B6AC-173260CEA8E5}.Release|Any CPU.Build.0 = Release|Any CPU
+		{8F26E967-30E9-42CB-A708-B763705FE3E2}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{8F26E967-30E9-42CB-A708-B763705FE3E2}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{8F26E967-30E9-42CB-A708-B763705FE3E2}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{8F26E967-30E9-42CB-A708-B763705FE3E2}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal

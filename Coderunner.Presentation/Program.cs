@@ -61,12 +61,6 @@ app.MapPost(
             await outbox.AddEventAsync(new RunCodeOutboxEvent(id), cancellationToken);
             transaction.Complete();
         }
-
-        // var process = new Process();
-        // var startInfo = new ProcessStartInfo("docker image build");
-        // process.StartInfo = startInfo;
-        // process.Start();
-        // await process.WaitForExitAsync();
     }
 );
 

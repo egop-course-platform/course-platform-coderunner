@@ -1,4 +1,4 @@
-namespace Coderunner.Presentation;
+namespace Coderunner.Core;
 
 public interface IWarmup
 {

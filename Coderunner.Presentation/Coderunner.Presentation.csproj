@@ -11,6 +11,8 @@
       <Content Include="..\.dockerignore">
         <Link>.dockerignore</Link>
       </Content>
+      <EmbeddedResource Include="Runner\Runner.csproj" />
+      <None Remove="Runner\Dockerfile" />
     </ItemGroup>
 
     <ItemGroup>
@@ -24,6 +26,7 @@
     </ItemGroup>
 
     <ItemGroup>
+      <ProjectReference Include="..\Coderunner.Core\Coderunner.Core.csproj" />
       <ProjectReference Include="..\Coderunner.DistributedOutbox.Kafka\Coderunner.DistributedOutbox.Kafka.csproj" />
       <ProjectReference Include="..\Coderunner.DistributedOutbox.Linq2Db\Coderunner.DistributedOutbox.Linq2Db.csproj" />
       <ProjectReference Include="..\Coderunner.DistributedOutbox\Coderunner.DistributedOutbox.csproj" />

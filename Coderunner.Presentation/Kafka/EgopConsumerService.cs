@@ -1,3 +1,4 @@
+using Coderunner.Core;
 using Confluent.Kafka;
 using Microsoft.Extensions.Options;
 
@@ -26,6 +27,8 @@ public class EgopConsumerService<T> : BackgroundService
 
         using var consumer = new ConsumerBuilder<Ignore, byte[]>(_consumerConfig)
             .Build();
+        
+        _logger.LogInformation("Consumer launched for topic {topic}", _options.Value.Topic);
 
         consumer.Subscribe(_options.Value.Topic);
 

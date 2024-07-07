@@ -15,7 +15,7 @@ public static class Registrar
         
         services.AddScoped<OutboxDbContext>(x => (x.GetRequiredService<TContext>() as OutboxDbContext)!);
         services.AddScoped<IOutbox, Linq2DbOutbox>();
-        services.AddHostedService<OutboxListenerService>();
+        services.AddHostedService<OutboxPoolerService>();
         services.AddHostedService<OutboxCleanerService>();
 
         return services;
