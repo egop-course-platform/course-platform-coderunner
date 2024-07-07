@@ -25,6 +25,7 @@ services:
       Serilog__Using__1: 'Serilog.Sinks.Console'
       Serilog__WriteTo__1__Name: 'Console'
       Serilog__Enrich__1: 'FromLogContext'
+    restart: unless-stopped
     ports: 
       - "10080:80"
     networks: 
