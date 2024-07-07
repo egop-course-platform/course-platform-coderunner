@@ -27,7 +27,7 @@ public class EgopConsumerService<T> : BackgroundService
 
         using var consumer = new ConsumerBuilder<Ignore, byte[]>(_consumerConfig)
             .Build();
-        
+
         _logger.LogInformation("Consumer launched for topic {topic}", _options.Value.Topic);
 
         consumer.Subscribe(_options.Value.Topic);
@@ -53,6 +53,14 @@ public class EgopConsumerService<T> : BackgroundService
             {
                 _logger.LogWarning(
                     "Consumer on {topic} caught cancellation token",
+                    _options.Value.Topic
+                );
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(
+                    ex,
+                    "Unhandled exception in consumer of {topic}",
                     _options.Value.Topic
                 );
             }
