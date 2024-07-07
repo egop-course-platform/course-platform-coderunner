@@ -126,32 +126,35 @@ public class CoderunnerOutboxEventsMessageHandler : IMessageHandler<CoderunnerOu
             var containerName = $"coderun-build-{codeRunId}";
 
             // Create the container
-            var response = await client.Containers.CreateContainerAsync(new CreateContainerParameters
-            {
-                Image = "mcr.microsoft.com/dotnet/sdk:8.0",
-                Name = containerName,
-                AttachStderr = true,
-                AttachStdout = true,
-                HostConfig = new HostConfig
+            var response = await client.Containers.CreateContainerAsync(
+                new CreateContainerParameters
                 {
-                    Memory = 150 * 1024 * 1024, // 150m
-                    NanoCPUs = (long)(1 * 1e9), // 0.5 CPUs
-                    Binds = new List<string>
+                    Image = "mcr.microsoft.com/dotnet/sdk:8.0",
+                    Name = containerName,
+                    AttachStderr = true,
+                    AttachStdout = true,
+                    HostConfig = new HostConfig
                     {
-                        $"/home/actions/course-platform/runs/{codeRunId}:/src",
-                        $"/home/actions/course-platform/runs/{codeRunId}/artifacts:/app/publish"
+                        Memory = 200 * 1024 * 1024, // 150m
+                        NanoCPUs = (long) (1 * 1e9), // 0.5 CPUs
+                        Binds = new List<string>
+                        {
+                            $"/home/actions/course-platform/runs/{codeRunId}:/src",
+                            $"/home/actions/course-platform/runs/{codeRunId}/artifacts:/app/publish"
+                        }
+                    },
+                    Cmd = new List<string>
+                    {
+                        "sh", "-c", "dotnet publish \"src/Runner.csproj\" -v quiet -c Release -o /app/publish && echo success"
                     }
                 },
-                Cmd = new List<string>
-                {
-                    "sh", "-c", "dotnet publish \"src/Runner.csproj\" -v quiet -c Release -o /app/publish && echo success"
-                }
-            },
-            cancellationToken
+                cancellationToken
             );
+            
+            _logger.LogInformation("Launched builder {builder_id}", response.ID);
 
             // Start the container
-            await client.Containers.StartContainerAsync(response.ID, null);
+            await client.Containers.StartContainerAsync(response.ID, null, cancellationToken);
 
             // Attach to the container to get stdout and stderr
             var parameters = new ContainerAttachParameters
@@ -169,7 +172,7 @@ public class CoderunnerOutboxEventsMessageHandler : IMessageHandler<CoderunnerOu
             await client.Containers.WaitContainerAsync(response.ID, cancellationToken);
 
             // Remove the container
-            await client.Containers.RemoveContainerAsync(response.ID, new ContainerRemoveParameters { Force = true }, cancellationToken);
+            await client.Containers.RemoveContainerAsync(response.ID, new ContainerRemoveParameters(), cancellationToken);
             
             return (result.stdout, result.stderr);
         }
