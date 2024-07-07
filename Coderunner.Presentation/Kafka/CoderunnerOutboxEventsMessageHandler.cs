@@ -1,6 +1,8 @@
 using System.Diagnostics;
 using System.Reflection;
 using Coderunner.Presentation.Models;
+using Docker.DotNet;
+using Docker.DotNet.Models;
 using LinqToDB;
 
 namespace Coderunner.Presentation.Kafka;
@@ -31,7 +33,7 @@ public class CoderunnerOutboxEventsMessageHandler : IMessageHandler<CoderunnerOu
 
         var code = codeRun.Code;
 
-        var path = _env.ContentRootPath;
+        var path = Path.Combine(_env.ContentRootPath, "runs");
 
         _logger.LogWarning("Running code {code} in {path}", code, path);
 
@@ -43,15 +45,17 @@ public class CoderunnerOutboxEventsMessageHandler : IMessageHandler<CoderunnerOu
             _logger.LogInformation("Created directory {path}", runPath);
             await CopyFiles(runPath, code, cancellationToken);
 
-            var buildResult = await DockerBuild(codeRun, cancellationToken, runPath);
+            var buildResult = await DockerBuild2(codeRun.Id, cancellationToken);
 
-            if (buildResult.OutputLines.Any(x => x.Contains("error")))
+            _logger.LogInformation("Build finished: {stdout}. {stderr}", buildResult.stdout, buildResult.stderr);
+            
+            if (buildResult.stdout.Contains("error"))
             {
                 _logger.LogWarning("Build finished with error. aborting!");
                 return;
             }
 
-            await DockerRun(codeRun, cancellationToken, runPath);
+            // await DockerRun(codeRun, cancellationToken, runPath);
         }
         finally
         {
@@ -113,6 +117,62 @@ public class CoderunnerOutboxEventsMessageHandler : IMessageHandler<CoderunnerOu
         process.OutputDataReceived -= OnProcessOnOutputDataReceived;
         process.ErrorDataReceived -= OnProcessOnErrorDataReceived;
         _logger.LogWarning("Run finished. Output: {output}. Error: {error}", string.Join("\n", outputLines), string.Join("\n", errorLines));
+    }
+
+    private async Task<(string stdout, string stderr)> DockerBuild2(Guid codeRunId, CancellationToken cancellationToken)
+    {
+        using (var client = new DockerClientConfiguration(new Uri("unix:///var/run/docker.sock")).CreateClient())
+        {
+            var containerName = $"coderun-build-{codeRunId}";
+
+            // Create the container
+            var response = await client.Containers.CreateContainerAsync(new CreateContainerParameters
+            {
+                Image = "mcr.microsoft.com/dotnet/sdk:8.0",
+                Name = containerName,
+                AttachStderr = true,
+                AttachStdout = true,
+                HostConfig = new HostConfig
+                {
+                    Memory = 150 * 1024 * 1024, // 150m
+                    NanoCPUs = (long)(0.5 * 1e9), // 0.5 CPUs
+                    Binds = new List<string>
+                    {
+                        $"/home/actions/course-platform/runs/{codeRunId}:/src",
+                        $"/home/actions/course-platform/runs/{codeRunId}/artifacts:/app/publish"
+                    }
+                },
+                Cmd = new List<string>
+                {
+                    "sh", "-c", "dotnet publish \"src/Runner.csproj\" -v quiet -c Release -o /app/publish && echo success"
+                }
+            },
+            cancellationToken
+            );
+
+            // Start the container
+            await client.Containers.StartContainerAsync(response.ID, null);
+
+            // Attach to the container to get stdout and stderr
+            var parameters = new ContainerAttachParameters
+            {
+                Stream = true,
+                Stdout = true,
+                Stderr = true
+            };
+            var stream = await client.Containers.AttachContainerAsync(response.ID, true, parameters,
+                cancellationToken
+            );
+            var result = await stream.ReadOutputToEndAsync(cancellationToken);
+
+            // Wait for the container to finish
+            await client.Containers.WaitContainerAsync(response.ID, cancellationToken);
+
+            // Remove the container
+            await client.Containers.RemoveContainerAsync(response.ID, new ContainerRemoveParameters { Force = true }, cancellationToken);
+            
+            return (result.stdout, result.stderr);
+        }
     }
 
     private async Task<(List<string> OutputLines, List<string> ErrorLines)> DockerBuild(CodeRun codeRun, CancellationToken cancellationToken, string runPath)

@@ -26,6 +26,8 @@ services:
       Serilog__WriteTo__1__Name: 'Console'
       Serilog__Enrich__1: 'FromLogContext'
     restart: unless-stopped
+    volumes:
+      - /home/actions/course-platform/runs:/app/runs
     ports: 
       - "10080:80"
     networks: 
