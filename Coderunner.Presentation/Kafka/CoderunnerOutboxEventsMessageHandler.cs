@@ -135,7 +135,7 @@ public class CoderunnerOutboxEventsMessageHandler : IMessageHandler<CoderunnerOu
                 HostConfig = new HostConfig
                 {
                     Memory = 150 * 1024 * 1024, // 150m
-                    NanoCPUs = (long)(0.5 * 1e9), // 0.5 CPUs
+                    NanoCPUs = (long)(1 * 1e9), // 0.5 CPUs
                     Binds = new List<string>
                     {
                         $"/home/actions/course-platform/runs/{codeRunId}:/src",
