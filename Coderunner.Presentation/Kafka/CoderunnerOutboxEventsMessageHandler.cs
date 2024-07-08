@@ -198,7 +198,6 @@ public class CoderunnerOutboxEventsMessageHandler : IMessageHandler<CoderunnerOu
                             $"-m 150m --cpus=\".5\" " +
                             $"-v /home/actions/course-platform/runs/{codeRun.Id:D}:/src " +
                             $"-v /home/actions/course-platform/runs/{codeRun.Id:D}/artifacts:/app/publish " +
-                            $"-v {runPath}/artifacts:/app/publish " +
                             $"-i " +
                             $"mcr.microsoft.com/dotnet/sdk:8.0 " +
                             $"sh -c \"dotnet publish \\\"src/Runner.csproj\\\" -v quiet -c Release -o /app/publish && echo success\"";
