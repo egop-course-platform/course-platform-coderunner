@@ -196,7 +196,7 @@ public class CoderunnerOutboxEventsMessageHandler : IMessageHandler<CoderunnerOu
                             $"--name coderun-build-{codeRun.Id:D} " +
                             $"--rm " +
                             $"-m 150m --cpus=\".5\" " +
-                            $"-v /home/actions/course-platform/runs/{codeRun.Id:D}:/src " +
+                            $"-v /home/actions/course-platform/runs/{codeRun.Id:D}/src:/src " +
                             $"-v /home/actions/course-platform/runs/{codeRun.Id:D}/artifacts:/app/publish " +
                             $"-i " +
                             $"mcr.microsoft.com/dotnet/sdk:8.0 " +
@@ -251,13 +251,13 @@ public class CoderunnerOutboxEventsMessageHandler : IMessageHandler<CoderunnerOu
         using var csprojStream = typeof(CoderunnerOutboxEventsMessageHandler).Assembly
             .GetManifestResourceStream("Coderunner.Presentation.Runner.Runner.csproj")!;
 
-        await using var csProjFs = new FileStream(Path.Combine(runPath, "Runner.csproj"), FileMode.Create);
+        await using var csProjFs = new FileStream(Path.Combine(runPath, "src", "Runner.csproj"), FileMode.Create);
 
         await csprojStream.CopyToAsync(csProjFs, cancellationToken);
 
         _logger.LogInformation("Created csproj");
 
-        await using var programFs = new FileStream(Path.Combine(runPath, "Program.cs"), FileMode.Create);
+        await using var programFs = new FileStream(Path.Combine(runPath, "src", "Program.cs"), FileMode.Create);
 
         await using var programStreamWriter = new StreamWriter(programFs);
 
