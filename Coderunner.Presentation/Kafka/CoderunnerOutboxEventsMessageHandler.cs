@@ -82,7 +82,7 @@ public class CoderunnerOutboxEventsMessageHandler : IMessageHandler<CoderunnerOu
                             $"-a stderr -a stdout " +
                             $"--name coderun-build-{codeRun.Id:D} " +
                             $"--rm " +
-                            $"-m 100m --memory-swap 100m --cpus=\".5\" " +
+                            $"-m 100m --memory-swap 100m --cpus=\".1\" " +
                             $"-v /home/actions/course-platform/runs/{codeRun.Id:D}/artifacts:/app " +
                             $"-i " +
                             $"mcr.microsoft.com/dotnet/runtime:8.0 " +
@@ -137,7 +137,7 @@ public class CoderunnerOutboxEventsMessageHandler : IMessageHandler<CoderunnerOu
                             $"-a stderr -a stdout " +
                             $"--name coderun-build-{codeRun.Id:D} " +
                             $"--rm " +
-                            $"-m 200m --memory-swap 200m --cpus=\".5\" " +
+                            $"-m 200m --memory-swap 200m --cpus=\"1\" " +
                             $"-v /home/actions/course-platform/runs/{codeRun.Id:D}/src:/src " +
                             $"-v /home/actions/course-platform/runs/{codeRun.Id:D}/artifacts:/app/publish " +
                             $"-i " +
