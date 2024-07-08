@@ -59,7 +59,7 @@ public class CoderunnerOutboxEventsMessageHandler : IMessageHandler<CoderunnerOu
                 _logger.LogWarning("Builder reported success. Launching app");
                 var runResult = await DockerRun(codeRun, cancellationToken);
                 
-                _logger.LogInformation("Run result: Output: {output}. Errors: {errors}", runResult.OutputLines, runResult.ErrorLines);
+                _logger.LogInformation("Run result: Output: {@output}. Errors: {@errors}", runResult.OutputLines, runResult.ErrorLines);
             }
             else
             {
@@ -82,7 +82,7 @@ public class CoderunnerOutboxEventsMessageHandler : IMessageHandler<CoderunnerOu
                             $"-a stderr -a stdout " +
                             $"--name coderun-build-{codeRun.Id:D} " +
                             $"--rm " +
-                            $"-m 150m --cpus=\".5\" " +
+                            $"-m 100m --memory-swap 100m --cpus=\".5\" " +
                             $"-v /home/actions/course-platform/runs/{codeRun.Id:D}/artifacts:/app " +
                             $"-i " +
                             $"mcr.microsoft.com/dotnet/runtime:8.0 " +
@@ -137,7 +137,7 @@ public class CoderunnerOutboxEventsMessageHandler : IMessageHandler<CoderunnerOu
                             $"-a stderr -a stdout " +
                             $"--name coderun-build-{codeRun.Id:D} " +
                             $"--rm " +
-                            $"-m 300m --cpus=\".5\" " +
+                            $"-m 200m --memory-swap 200m --cpus=\".5\" " +
                             $"-v /home/actions/course-platform/runs/{codeRun.Id:D}/src:/src " +
                             $"-v /home/actions/course-platform/runs/{codeRun.Id:D}/artifacts:/app/publish " +
                             $"-i " +
