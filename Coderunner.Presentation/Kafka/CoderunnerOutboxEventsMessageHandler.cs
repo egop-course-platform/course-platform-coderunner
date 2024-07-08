@@ -40,7 +40,8 @@ public class CoderunnerOutboxEventsMessageHandler : IMessageHandler<CoderunnerOu
         var runPath = Path.Combine(path, codeRun.Id.ToString("D"));
         try
         {
-            var dir = Directory.CreateDirectory(runPath);
+            Directory.CreateDirectory(runPath);
+            Directory.CreateDirectory(Path.Combine(runPath, "src"));
 
             _logger.LogInformation("Created directory {path}", runPath);
             await CopyFiles(runPath, code, cancellationToken);
