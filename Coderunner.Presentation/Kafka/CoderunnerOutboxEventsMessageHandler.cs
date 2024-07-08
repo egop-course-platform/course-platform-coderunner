@@ -45,15 +45,25 @@ public class CoderunnerOutboxEventsMessageHandler : IMessageHandler<CoderunnerOu
             _logger.LogInformation("Created directory {path}", runPath);
             await CopyFiles(runPath, code, cancellationToken);
 
-            var buildResult = await DockerBuild2(codeRun.Id, cancellationToken);
-
-            _logger.LogInformation("Build finished: stdout={stdout}. stderr={stderr}", buildResult.stdout, buildResult.stderr);
+            var buildResult = await DockerBuild(codeRun, cancellationToken, runPath);
             
-            if (buildResult.stdout.Contains("error"))
+            if (buildResult.ErrorLines.Any(x => x.Contains("error")))
             {
                 _logger.LogWarning("Build finished with error. aborting!");
                 return;
             }
+            else
+            {
+                _logger.LogWarning("Build succeeded");
+            }
+
+            // _logger.LogInformation("Build finished: stdout={stdout}. stderr={stderr}", buildResult.stdout, buildResult.stderr);
+            //
+            // if (buildResult.stdout.Contains("error"))
+            // {
+            //     _logger.LogWarning("Build finished with error. aborting!");
+            //     return;
+            // }
 
             // await DockerRun(codeRun, cancellationToken, runPath);
         }
@@ -186,7 +196,8 @@ public class CoderunnerOutboxEventsMessageHandler : IMessageHandler<CoderunnerOu
                             $"--name coderun-build-{codeRun.Id:D} " +
                             $"--rm " +
                             $"-m 150m --cpus=\".5\" " +
-                            $"-v {runPath}:/src " +
+                            $"-v /home/actions/course-platform/runs/{codeRun.Id:D}:/src " +
+                            $"-v /home/actions/course-platform/runs/{codeRun.Id:D}/artifacts:/app/publish " +
                             $"-v {runPath}/artifacts:/app/publish " +
                             $"-i " +
                             $"mcr.microsoft.com/dotnet/sdk:8.0 " +
