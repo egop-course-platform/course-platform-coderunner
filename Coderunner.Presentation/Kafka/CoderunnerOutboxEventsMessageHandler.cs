@@ -196,7 +196,7 @@ public class CoderunnerOutboxEventsMessageHandler : IMessageHandler<CoderunnerOu
                             $"-a stderr -a stdout " +
                             $"--name coderun-build-{codeRun.Id:D} " +
                             $"--rm " +
-                            $"-m 150m --cpus=\".5\" " +
+                            $"-m 300m --cpus=\".5\" " +
                             $"-v /home/actions/course-platform/runs/{codeRun.Id:D}/src:/src " +
                             $"-v /home/actions/course-platform/runs/{codeRun.Id:D}/artifacts:/app/publish " +
                             $"-i " +
