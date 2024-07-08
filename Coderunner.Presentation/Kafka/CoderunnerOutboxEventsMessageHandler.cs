@@ -46,35 +46,35 @@ public class CoderunnerOutboxEventsMessageHandler : IMessageHandler<CoderunnerOu
             _logger.LogInformation("Created directory {path}", runPath);
             await CopyFiles(runPath, code, cancellationToken);
 
-            var buildResult = await DockerBuild(codeRun, cancellationToken, runPath);
-            
+            var buildResult = await DockerBuild(codeRun, cancellationToken);
+
             if (buildResult.ErrorLines.Any(x => x.Contains("error")))
             {
                 _logger.LogWarning("Build finished with error. aborting!");
                 return;
             }
+
+            if (buildResult.OutputLines.Any(x => x.Contains("success")))
+            {
+                _logger.LogWarning("Builder reported success. Launching app");
+                var runResult = await DockerRun(codeRun, cancellationToken);
+                
+                _logger.LogInformation("Run result: Output: {output}. Errors: {errors}", runResult.OutputLines, runResult.ErrorLines);
+            }
             else
             {
-                _logger.LogWarning("Build succeeded");
+                _logger.LogWarning("Builder didn't report. Noop now");
+                // TODO:
+                return;
             }
-
-            // _logger.LogInformation("Build finished: stdout={stdout}. stderr={stderr}", buildResult.stdout, buildResult.stderr);
-            //
-            // if (buildResult.stdout.Contains("error"))
-            // {
-            //     _logger.LogWarning("Build finished with error. aborting!");
-            //     return;
-            // }
-
-            // await DockerRun(codeRun, cancellationToken, runPath);
         }
         finally
         {
-            // Directory.Delete(runPath, true);
+            Directory.Delete(runPath, true);
         }
     }
 
-    private async Task DockerRun(CodeRun codeRun, CancellationToken cancellationToken, string runPath)
+    private async Task<(List<string> OutputLines, List<string> ErrorLines)> DockerRun(CodeRun codeRun, CancellationToken cancellationToken)
     {
         var process = new Process();
 
@@ -83,14 +83,13 @@ public class CoderunnerOutboxEventsMessageHandler : IMessageHandler<CoderunnerOu
                             $"--name coderun-build-{codeRun.Id:D} " +
                             $"--rm " +
                             $"-m 150m --cpus=\".5\" " +
-                            $"-v {runPath}/artifacts:/app " +
+                            $"-v /home/actions/course-platform/runs/{codeRun.Id:D}/artifacts:/app " +
                             $"-i " +
                             $"mcr.microsoft.com/dotnet/runtime:8.0 " +
-                            $"sh -c \"dotnet /app/Runner.dll -v quiet -c Release -o /app/publish\"";
-        
+                            $"sh -c \"dotnet /app/Runner.dll\"";
+
         var startInfo = new ProcessStartInfo("docker", dockerRunArgs)
         {
-            WorkingDirectory = runPath,
             RedirectStandardOutput = true,
             RedirectStandardError = true,
             UseShellExecute = false
@@ -128,68 +127,10 @@ public class CoderunnerOutboxEventsMessageHandler : IMessageHandler<CoderunnerOu
         process.OutputDataReceived -= OnProcessOnOutputDataReceived;
         process.ErrorDataReceived -= OnProcessOnErrorDataReceived;
         _logger.LogWarning("Run finished. Output: {output}. Error: {error}", string.Join("\n", outputLines), string.Join("\n", errorLines));
+        return (outputLines, errorLines);
     }
 
-    private async Task<(string stdout, string stderr)> DockerBuild2(Guid codeRunId, CancellationToken cancellationToken)
-    {
-        using (var client = new DockerClientConfiguration(new Uri("unix:///var/run/docker.sock")).CreateClient())
-        {
-            var containerName = $"coderun-build-{codeRunId}";
-
-            // Create the container
-            var response = await client.Containers.CreateContainerAsync(
-                new CreateContainerParameters
-                {
-                    Image = "mcr.microsoft.com/dotnet/sdk:8.0",
-                    Name = containerName,
-                    AttachStderr = true,
-                    AttachStdout = true,
-                    HostConfig = new HostConfig
-                    {
-                        Memory = 200 * 1024 * 1024, // 150m
-                        NanoCPUs = (long) (1 * 1e9), // 0.5 CPUs
-                        Binds = new List<string>
-                        {
-                            $"/home/actions/course-platform/runs/{codeRunId}:/src",
-                            $"/home/actions/course-platform/runs/{codeRunId}/artifacts:/app/publish"
-                        }
-                    },
-                    Cmd = new List<string>
-                    {
-                        "sh", "-c", "dotnet publish \"src/Runner.csproj\" -v quiet -c Release -o /app/publish && echo success"
-                    }
-                },
-                cancellationToken
-            );
-            
-            _logger.LogInformation("Launched builder {builder_id}", response.ID);
-
-            // Start the container
-            await client.Containers.StartContainerAsync(response.ID, null, cancellationToken);
-
-            // Attach to the container to get stdout and stderr
-            var parameters = new ContainerAttachParameters
-            {
-                Stream = true,
-                Stdout = true,
-                Stderr = true
-            };
-            var stream = await client.Containers.AttachContainerAsync(response.ID, true, parameters,
-                cancellationToken
-            );
-            var result = await stream.ReadOutputToEndAsync(cancellationToken);
-
-            // Wait for the container to finish
-            await client.Containers.WaitContainerAsync(response.ID, cancellationToken);
-
-            // Remove the container
-            await client.Containers.RemoveContainerAsync(response.ID, new ContainerRemoveParameters(), cancellationToken);
-            
-            return (result.stdout, result.stderr);
-        }
-    }
-
-    private async Task<(List<string> OutputLines, List<string> ErrorLines)> DockerBuild(CodeRun codeRun, CancellationToken cancellationToken, string runPath)
+    private async Task<(List<string> OutputLines, List<string> ErrorLines)> DockerBuild(CodeRun codeRun, CancellationToken cancellationToken)
     {
         var process = new Process();
         var dockerRunArgs = $"run " +
@@ -202,10 +143,11 @@ public class CoderunnerOutboxEventsMessageHandler : IMessageHandler<CoderunnerOu
                             $"-i " +
                             $"mcr.microsoft.com/dotnet/sdk:8.0 " +
                             $"sh -c \"dotnet publish \\\"src/Runner.csproj\\\" -v quiet -c Release -o /app/publish && echo success\"";
-        var startInfo = new ProcessStartInfo("docker", 
-            dockerRunArgs)
+        var startInfo = new ProcessStartInfo(
+            "docker",
+            dockerRunArgs
+        )
         {
-            WorkingDirectory = runPath,
             RedirectStandardOutput = true,
             RedirectStandardError = true,
             UseShellExecute = false
@@ -243,7 +185,7 @@ public class CoderunnerOutboxEventsMessageHandler : IMessageHandler<CoderunnerOu
         process.OutputDataReceived -= OnProcessOnOutputDataReceived;
         process.ErrorDataReceived -= OnProcessOnErrorDataReceived;
         _logger.LogWarning("Build finished. Output: {output}. Error: {error}", string.Join("\n", outputLines), string.Join("\n", errorLines));
-        
+
         return (outputLines, errorLines);
     }
 
