@@ -38,7 +38,7 @@ builder.Services
 
 var app = builder.Build();
 
-app.UsePathBase("/coderunner");
+app.UsePathBase("/api/coderunner");
 
 app.MapPost(
     "/schedule",
