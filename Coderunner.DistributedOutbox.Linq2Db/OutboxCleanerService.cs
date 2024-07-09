@@ -25,7 +25,7 @@ public class OutboxCleanerService : BackgroundService
     {
         await _warmup.WaitWarmup();
 
-        _logger.LogInformation("Outbox cleaner launched");
+        _logger.LogInformation("Outbox Cleaner: Launched");
         
         while (!stoppingToken.IsCancellationRequested)
         {
@@ -38,16 +38,18 @@ public class OutboxCleanerService : BackgroundService
 
                     var cleanMoment = DateTime.UtcNow.AddDays(-7);
 
-                    await context.OutboxEvents
+                    var deleted = await context.OutboxEvents
                         .Where(x => x.Date <= cleanMoment && InterestedEvents.Contains(x.Status))
                         .DeleteAsync(token: stoppingToken);
+                    
+                    _logger.LogInformation("Outbox Cleaner: Deleted {count} entries", deleted);
                 }
 
                 await Task.Delay(60_000, stoppingToken);
             }
             catch (TaskCanceledException)
             {
-                _logger.LogInformation("Outbox cleaner caught cancellation token");
+                _logger.LogInformation("Outbox Cleaner: Caught cancellation token");
             }
         }
     }

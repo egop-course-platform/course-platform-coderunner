@@ -27,43 +27,56 @@ public class CoderunnerOutboxEventsMessageHandler : IMessageHandler<CoderunnerOu
 
         if (codeRun is null)
         {
-            _logger.LogWarning("Coderun {id} not found when running", message.CodeRunId);
+            _logger.LogWarning("CoderunnerMessageHandler: Coderun {run_id} not found when running", message.CodeRunId);
             return;
         }
 
-        var code = codeRun.Code;
+        _logger.LogInformation("CoderunnerMessageHandler: Started run {run_id}", message.CodeRunId);
 
         var path = Path.Combine(_env.ContentRootPath, "runs");
 
-        _logger.LogWarning("Running code {code} in {path}", code, path);
+        await PerformRun(path, codeRun, cancellationToken);
+    }
 
-        var runPath = Path.Combine(path, codeRun.Id.ToString("D"));
+    private async Task PerformRun(string path, CodeRun codeRun, CancellationToken cancellationToken)
+    {
+        var codeRunId = codeRun.Id;
+        var code = codeRun.Code;
+
+        _logger.LogWarning("PerformRun: Running code {code} in {path}", code, path);
+
+        var runPath = Path.Combine(path, codeRunId.ToString("D"));
         try
         {
             Directory.CreateDirectory(runPath);
-            Directory.CreateDirectory(Path.Combine(runPath, "src"));
 
-            _logger.LogInformation("Created directory {path}", runPath);
-            await CopyFiles(runPath, code, cancellationToken);
+            var srcPath = Path.Combine(runPath, "src");
 
-            var buildResult = await DockerBuild(codeRun, cancellationToken);
+            Directory.CreateDirectory(srcPath);
+
+            _logger.LogInformation("PerformRun: Created directory {run_id}", codeRunId);
+
+            await CopySrcFiles(srcPath, code, cancellationToken);
+
+            var buildResult = await DockerBuild(codeRunId, cancellationToken);
 
             if (buildResult.ErrorLines.Any(x => x.Contains("error")))
             {
-                _logger.LogWarning("Build finished with error. aborting!");
+                _logger.LogWarning("PerformRun: Build finished with error. aborting!");
                 return;
             }
 
             if (buildResult.OutputLines.Any(x => x.Contains("success")))
             {
-                _logger.LogWarning("Builder reported success. Launching app");
-                var runResult = await DockerRun(codeRun, cancellationToken);
+                _logger.LogWarning("PerformRun: Builder reported success. Launching app");
+
+                var runResult = await DockerRun(codeRunId, cancellationToken);
                 
-                _logger.LogInformation("Run result: Output: {@output}. Errors: {@errors}", runResult.OutputLines, runResult.ErrorLines);
+                _logger.LogInformation("PerformRun: run result: Output: {@output}. Errors: {@errors}", runResult.OutputLines, runResult.ErrorLines);
             }
             else
             {
-                _logger.LogWarning("Builder didn't report. Noop now");
+                _logger.LogWarning("PerformRun: Builder didn't report. Noop now");
                 // TODO:
                 return;
             }
@@ -71,17 +84,18 @@ public class CoderunnerOutboxEventsMessageHandler : IMessageHandler<CoderunnerOu
         finally
         {
             Directory.Delete(runPath, true);
+            _logger.LogInformation("PerformRun: Dropped run folder: {run_id}", codeRunId);
         }
     }
 
-    private async Task<(List<string> OutputLines, List<string> ErrorLines)> DockerRun(CodeRun codeRun, CancellationToken cancellationToken)
+    private async Task<(List<string> OutputLines, List<string> ErrorLines)> DockerRun(Guid codeRunId, CancellationToken cancellationToken)
     {
         var dockerRunArgs = $"run " +
                             $"-a stderr -a stdout " +
-                            $"--name coderun-build-{codeRun.Id:D} " +
+                            $"--name coderun-build-{codeRunId:D} " +
                             $"--rm " +
                             $"-m 100m --memory-swap 100m --cpus=\".1\" " +
-                            $"-v /home/actions/course-platform/runs/{codeRun.Id:D}/artifacts:/app " +
+                            $"-v /home/actions/course-platform/runs/{codeRunId:D}/artifacts:/app " +
                             $"-i " +
                             $"-q " +
                             $"mcr.microsoft.com/dotnet/runtime:8.0 " +
@@ -90,15 +104,15 @@ public class CoderunnerOutboxEventsMessageHandler : IMessageHandler<CoderunnerOu
         return await ExecCli("docker", dockerRunArgs, cancellationToken);
     }
 
-    private async Task<(List<string> OutputLines, List<string> ErrorLines)> DockerBuild(CodeRun codeRun, CancellationToken cancellationToken)
+    private async Task<(List<string> OutputLines, List<string> ErrorLines)> DockerBuild(Guid codeRunId, CancellationToken cancellationToken)
     {
         var dockerRunArgs = $"run " +
                             $"-a stderr -a stdout " +
-                            $"--name coderun-build-{codeRun.Id:D} " +
+                            $"--name coderun-build-{codeRunId:D} " +
                             $"--rm " +
                             $"-m 200m --memory-swap 200m --cpus=\"1\" " +
-                            $"-v /home/actions/course-platform/runs/{codeRun.Id:D}/src:/src " +
-                            $"-v /home/actions/course-platform/runs/{codeRun.Id:D}/artifacts:/app/publish " +
+                            $"-v /home/actions/course-platform/runs/{codeRunId:D}/src:/src " +
+                            $"-v /home/actions/course-platform/runs/{codeRunId:D}/artifacts:/app/publish " +
                             $"-i " +
                             $"-q " +
                             $"mcr.microsoft.com/dotnet/sdk:8.0 " +
@@ -107,13 +121,14 @@ public class CoderunnerOutboxEventsMessageHandler : IMessageHandler<CoderunnerOu
         return await ExecCli("docker", dockerRunArgs, cancellationToken);
     }
 
-    private async Task<(List<string> OutputLines, List<string> ErrorLines)> ExecCli(string program, string args, CancellationToken cancellationToken)
+    private async Task<(List<string> OutputLines, List<string> ErrorLines)> ExecCli(string program, string programArgs, CancellationToken cancellationToken)
     {
-        _logger.LogInformation("Running CLI: {program} {args}", program, args);
+        _logger.LogInformation("Running CLI: {program} {args}", program, programArgs);
+
         var process = new Process();
         var startInfo = new ProcessStartInfo(
             program,
-            args
+            programArgs
         )
         {
             RedirectStandardOutput = true,
@@ -123,6 +138,20 @@ public class CoderunnerOutboxEventsMessageHandler : IMessageHandler<CoderunnerOu
         process.StartInfo = startInfo;
         List<string> outputLines = [];
         List<string> errorLines = [];
+
+        process.OutputDataReceived += OnProcessOnOutputDataReceived;
+        process.ErrorDataReceived += OnProcessOnErrorDataReceived;
+        process.Start();
+        process.BeginOutputReadLine();
+        process.BeginErrorReadLine();
+
+        await process.WaitForExitAsync(cancellationToken);
+
+        process.OutputDataReceived -= OnProcessOnOutputDataReceived;
+        process.ErrorDataReceived -= OnProcessOnErrorDataReceived;
+        _logger.LogWarning("Build finished. Output: {output}. Error: {error}", string.Join("\n", outputLines), string.Join("\n", errorLines));
+
+        return (outputLines, errorLines);
 
         void OnProcessOnOutputDataReceived(object _, DataReceivedEventArgs args)
         {
@@ -139,41 +168,25 @@ public class CoderunnerOutboxEventsMessageHandler : IMessageHandler<CoderunnerOu
                 errorLines.Add(args.Data);
             }
         }
-
-        process.OutputDataReceived += OnProcessOnOutputDataReceived;
-        process.ErrorDataReceived += OnProcessOnErrorDataReceived;
-        process.Start();
-        process.BeginOutputReadLine();
-        process.BeginErrorReadLine();
-
-        // var output = await process.StandardOutput.ReadToEndAsync(cancellationToken);
-        // var error = await process.StandardError.ReadToEndAsync(cancellationToken);
-        await process.WaitForExitAsync(cancellationToken);
-
-        process.OutputDataReceived -= OnProcessOnOutputDataReceived;
-        process.ErrorDataReceived -= OnProcessOnErrorDataReceived;
-        _logger.LogWarning("Build finished. Output: {output}. Error: {error}", string.Join("\n", outputLines), string.Join("\n", errorLines));
-
-        return (outputLines, errorLines);
     }
 
-    private async Task CopyFiles(string runPath, string code, CancellationToken cancellationToken)
+    private async Task CopySrcFiles(string path, string code, CancellationToken cancellationToken)
     {
         using var csprojStream = typeof(CoderunnerOutboxEventsMessageHandler).Assembly
             .GetManifestResourceStream("Coderunner.Presentation.Runner.Runner.csproj")!;
 
-        await using var csProjFs = new FileStream(Path.Combine(runPath, "src", "Runner.csproj"), FileMode.Create);
+        await using var csProjFs = new FileStream(Path.Combine(path, "Runner.csproj"), FileMode.Create);
 
         await csprojStream.CopyToAsync(csProjFs, cancellationToken);
 
-        _logger.LogInformation("Created csproj");
+        _logger.LogInformation("CopySrcFiles: Created csproj");
 
-        await using var programFs = new FileStream(Path.Combine(runPath, "src", "Program.cs"), FileMode.Create);
+        await using var programFs = new FileStream(Path.Combine(path, "Program.cs"), FileMode.Create);
 
         await using var programStreamWriter = new StreamWriter(programFs);
 
         await programStreamWriter.WriteAsync(code);
 
-        _logger.LogInformation("Created Program.cs");
+        _logger.LogInformation("CopySrcFiles: Created Program.cs");
     }
 }

@@ -10,6 +10,11 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+#    deploy: 
+#      resources: 
+#        limits:
+#          cpus: 0.5
+#          memory: 50m
     environment:
       ASPNETCORE_URLS: "http://+:80"
       ConnectionStrings__Kafka: "kafka:9092"

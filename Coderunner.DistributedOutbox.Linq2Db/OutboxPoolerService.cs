@@ -25,7 +25,7 @@ internal class OutboxPoolerService : BackgroundService
     {
         await _warmup.WaitWarmup();
 
-        _logger.LogInformation("Outbox pooler launched");
+        _logger.LogInformation("Outbox Pooler: Launched");
 
         while (!stoppingToken.IsCancellationRequested)
         {
@@ -52,11 +52,11 @@ internal class OutboxPoolerService : BackgroundService
                                 .Set(x => x.Status, "Sent")
                                 .UpdateAsync(token: stoppingToken);
 
-                            _logger.LogInformation("Sent outbox event");
+                            _logger.LogInformation("Outbox Pooler: Sent outbox event");
                         }
                         else
                         {
-                            _logger.LogWarning("Failed sending outbox events to topic");
+                            _logger.LogWarning("Outbox Pooler: Failed sending outbox events to topic");
                         }
                     }
                 }
@@ -65,7 +65,7 @@ internal class OutboxPoolerService : BackgroundService
             }
             catch (TaskCanceledException)
             {
-                _logger.LogInformation("Outbox listener caught cancellation token");
+                _logger.LogInformation("Outbox Pooler: Caught cancellation token");
             }
         }
     }
