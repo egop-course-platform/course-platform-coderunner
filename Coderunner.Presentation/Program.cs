@@ -61,6 +61,8 @@ app.MapPost(
             await outbox.AddEventAsync(new RunCodeOutboxEvent(id), cancellationToken);
             transaction.Complete();
         }
+
+        return Results.Ok(new {Id = id});
     }
 );
 
