@@ -92,7 +92,7 @@ public class CoderunnerOutboxEventsMessageHandler : IMessageHandler<CoderunnerOu
     {
         var dockerRunArgs = $"run " +
                             $"-a stderr -a stdout " +
-                            $"--name coderun-build-{codeRunId:D} " +
+                            $"--name coderun-run-{codeRunId:D} " +
                             $"--rm " +
                             $"-m 100m --memory-swap 100m --cpus=\".1\" " +
                             $"-v /home/actions/course-platform/runs/{codeRunId:D}/artifacts:/app " +
