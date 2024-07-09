@@ -83,6 +83,7 @@ public class CoderunnerOutboxEventsMessageHandler : IMessageHandler<CoderunnerOu
                             $"-m 100m --memory-swap 100m --cpus=\".1\" " +
                             $"-v /home/actions/course-platform/runs/{codeRun.Id:D}/artifacts:/app " +
                             $"-i " +
+                            $"-q " +
                             $"mcr.microsoft.com/dotnet/runtime:8.0 " +
                             $"sh -c \"dotnet /app/Runner.dll\"";
 
@@ -99,6 +100,7 @@ public class CoderunnerOutboxEventsMessageHandler : IMessageHandler<CoderunnerOu
                             $"-v /home/actions/course-platform/runs/{codeRun.Id:D}/src:/src " +
                             $"-v /home/actions/course-platform/runs/{codeRun.Id:D}/artifacts:/app/publish " +
                             $"-i " +
+                            $"-q " +
                             $"mcr.microsoft.com/dotnet/sdk:8.0 " +
                             $"sh -c \"dotnet publish \\\"src/Runner.csproj\\\" -v quiet -c Release -o /app/publish && echo success\"";
 
