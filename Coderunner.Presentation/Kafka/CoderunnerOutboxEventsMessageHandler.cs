@@ -76,8 +76,6 @@ public class CoderunnerOutboxEventsMessageHandler : IMessageHandler<CoderunnerOu
 
     private async Task<(List<string> OutputLines, List<string> ErrorLines)> DockerRun(CodeRun codeRun, CancellationToken cancellationToken)
     {
-        var process = new Process();
-
         var dockerRunArgs = $"run " +
                             $"-a stderr -a stdout " +
                             $"--name coderun-build-{codeRun.Id:D} " +
@@ -88,51 +86,11 @@ public class CoderunnerOutboxEventsMessageHandler : IMessageHandler<CoderunnerOu
                             $"mcr.microsoft.com/dotnet/runtime:8.0 " +
                             $"sh -c \"dotnet /app/Runner.dll\"";
 
-        var startInfo = new ProcessStartInfo("docker", dockerRunArgs)
-        {
-            RedirectStandardOutput = true,
-            RedirectStandardError = true,
-            UseShellExecute = false
-        };
-        process.StartInfo = startInfo;
-        List<string> outputLines = [];
-        List<string> errorLines = [];
-
-        void OnProcessOnOutputDataReceived(object _, DataReceivedEventArgs args)
-        {
-            if (args.Data is not null)
-            {
-                outputLines.Add(args.Data);
-            }
-        }
-
-        void OnProcessOnErrorDataReceived(object _, DataReceivedEventArgs args)
-        {
-            if (args.Data is not null)
-            {
-                errorLines.Add(args.Data);
-            }
-        }
-
-        process.OutputDataReceived += OnProcessOnOutputDataReceived;
-        process.ErrorDataReceived += OnProcessOnErrorDataReceived;
-        process.Start();
-        process.BeginOutputReadLine();
-        process.BeginErrorReadLine();
-
-        // var output = await process.StandardOutput.ReadToEndAsync(cancellationToken);
-        // var error = await process.StandardError.ReadToEndAsync(cancellationToken);
-        await process.WaitForExitAsync(cancellationToken);
-
-        process.OutputDataReceived -= OnProcessOnOutputDataReceived;
-        process.ErrorDataReceived -= OnProcessOnErrorDataReceived;
-        _logger.LogWarning("Run finished. Output: {output}. Error: {error}", string.Join("\n", outputLines), string.Join("\n", errorLines));
-        return (outputLines, errorLines);
+        return await ExecCli("docker", dockerRunArgs, cancellationToken);
     }
 
     private async Task<(List<string> OutputLines, List<string> ErrorLines)> DockerBuild(CodeRun codeRun, CancellationToken cancellationToken)
     {
-        var process = new Process();
         var dockerRunArgs = $"run " +
                             $"-a stderr -a stdout " +
                             $"--name coderun-build-{codeRun.Id:D} " +
@@ -143,9 +101,17 @@ public class CoderunnerOutboxEventsMessageHandler : IMessageHandler<CoderunnerOu
                             $"-i " +
                             $"mcr.microsoft.com/dotnet/sdk:8.0 " +
                             $"sh -c \"dotnet publish \\\"src/Runner.csproj\\\" -v quiet -c Release -o /app/publish && echo success\"";
+
+        return await ExecCli("docker", dockerRunArgs, cancellationToken);
+    }
+
+    private async Task<(List<string> OutputLines, List<string> ErrorLines)> ExecCli(string program, string args, CancellationToken cancellationToken)
+    {
+        _logger.LogInformation("Running CLI: {program} {args}", program, args);
+        var process = new Process();
         var startInfo = new ProcessStartInfo(
-            "docker",
-            dockerRunArgs
+            program,
+            args
         )
         {
             RedirectStandardOutput = true,
