@@ -20,6 +20,8 @@ builder.Host
     );
 builder.Services.AddWarmup();
 
+builder.Services.AddControllers();
+
 builder.Services.AddWebSockets(x => { x.KeepAliveInterval = TimeSpan.FromMinutes(1); });
 
 builder.Services
