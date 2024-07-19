@@ -1,3 +1,4 @@
+using System.Text;
 using System.Transactions;
 using Coderunner.DistributedOutbox;
 using Coderunner.DistributedOutbox.Kafka;
@@ -9,6 +10,7 @@ using Coderunner.Presentation.Kafka;
 using Coderunner.Presentation.Models;
 using LinqToDB;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.WebSockets;
 using Serilog;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -17,6 +19,8 @@ builder.Host
         (builderContext, config) => { config.ReadFrom.Configuration(builderContext.Configuration); }
     );
 builder.Services.AddWarmup();
+
+builder.Services.AddWebSockets(x => { x.KeepAliveInterval = TimeSpan.FromMinutes(1); });
 
 builder.Services
     .AddDatabase(builder.Configuration)
@@ -65,5 +69,9 @@ app.MapPost(
         return Results.Ok(new {Id = id});
     }
 );
+
+app.UseWebSockets();
+
+app.MapControllers();
 
 app.Run();

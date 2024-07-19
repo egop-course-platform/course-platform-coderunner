@@ -37,10 +37,16 @@ internal class OutboxPoolerService : BackgroundService
                     using var context = scope.ServiceProvider.GetRequiredService<OutboxDbContext>();
                     var producer = scope.ServiceProvider.GetRequiredService<IOutboxEventProducer>();
 
-                    var events = await context.OutboxEvents.Where(x => InterestedEvents.Contains(x.Status))
+                    var events = await context.OutboxEvents
+                        .Where(x => InterestedEvents.Contains(x.Status))
                         .OrderBy(x => x.Date)
                         .ThenBy(x => x.Id)
+                        // .QueryHint("FOR UPDATE")
                         .ToListAsync(token: stoppingToken);
+                    
+                    // signalR
+                    // for update - погуглить/подумать
+                    // выполнение AppArmor + time control
 
                     foreach (var entry in events)
                     {
