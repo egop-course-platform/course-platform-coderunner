@@ -45,6 +45,16 @@ public class CoderunnerOutboxEventsMessageHandler : IMessageHandler<CoderunnerOu
     {
         var codeRunId = codeRun.Id;
         var code = codeRun.Code;
+        
+        await _websocketHolder.TryNotify(
+            codeRunId,
+            new
+            {
+                Action = "build",
+                Result = "launched"
+            },
+            cancellationToken
+        );
 
         _logger.LogWarning("PerformRun: Running code {code} in {path}", code, path);
 
@@ -101,7 +111,8 @@ public class CoderunnerOutboxEventsMessageHandler : IMessageHandler<CoderunnerOu
                     new
                     {
                         Action = "run",
-                        Result = "succeeded"
+                        Result = "succeeded",
+                        OutputLines = runResult.OutputLines
                     },
                     cancellationToken
                 );
