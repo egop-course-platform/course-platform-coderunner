@@ -74,7 +74,10 @@ public class WebsocketController : ControllerBase
                     case "run":
                     {
                         // if we have deserialized the command wrapper, then this deserialization won't return null
-                        var runCodeRequest = JsonSerializer.Deserialize<RunCommand>(buffer.AsSpan()[..receiveResult.Count])!;
+                        var runCodeRequest = JsonSerializer.Deserialize<RunCommand>(
+                            buffer.AsSpan()[..receiveResult.Count],
+                            JsonSerializerOptions
+                        )!;
 
                         if (runCodeRequest.Code is null)
                         {
