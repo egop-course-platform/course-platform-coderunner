@@ -9,24 +9,36 @@ public record WebsocketItem(WebSocket Socket, CancellationTokenSource Cancellati
 
 public class WebsocketHolder
 {
+    private readonly ILogger<WebsocketHolder> _logger;
     private readonly ConcurrentDictionary<Guid, WebsocketItem> _webSockets = new();
 
-    public WebsocketHolder()
+    public WebsocketHolder(ILogger<WebsocketHolder> logger)
     {
+        _logger = logger;
     }
 
     public bool Register(Guid codeRunId, WebSocket webSocket, CancellationTokenSource cancellationTokenSource)
     {
-        cancellationTokenSource.Token.Register(() => _webSockets.TryRemove(codeRunId, out _));
-        return _webSockets.TryAdd(codeRunId, new WebsocketItem(webSocket, cancellationTokenSource));
+        _logger.LogInformation("Registering websocket for {coderun_id}", codeRunId);
+        cancellationTokenSource.Token.Register(
+            () =>
+            {
+                _logger.LogInformation("Executing cancellation of websocket for {coderun_id}", codeRunId);
+                _webSockets.TryRemove(codeRunId, out _);
+            }
+        );
+
+        var result = _webSockets.TryAdd(codeRunId, new WebsocketItem(webSocket, cancellationTokenSource));
+
+        return result;
     }
 
     public bool Unregister(Guid codeRunId)
     {
+        _logger.LogInformation("Unregistering websocket for {coderun_id}", codeRunId);
         if (_webSockets.TryGetValue(codeRunId, out var websocketItem))
         {
             websocketItem.CancellationTokenSource.Cancel();
-            _webSockets.TryRemove(codeRunId, out _);
             return true;
         }
 
@@ -35,6 +47,7 @@ public class WebsocketHolder
 
     public async Task<bool> TryNotify(Guid codeRunId, object data, CancellationToken cancellationToken)
     {
+        _logger.LogInformation("Notifying websocket for {coderun_id}", codeRunId);
         if (_webSockets.TryGetValue(codeRunId, out var websocketItem))
         {
             if (websocketItem.CancellationTokenSource.IsCancellationRequested)
@@ -42,27 +55,17 @@ public class WebsocketHolder
                 return false;
             }
 
-            var buffer = ArrayPool<byte>.Shared.Rent(4096);
-            try
-            {
-                using var ms = new MemoryStream(buffer);
+            var buffer = JsonSerializer.SerializeToUtf8Bytes(data);
 
-                await JsonSerializer.SerializeAsync(ms, data, cancellationToken: cancellationToken);
-
-                await websocketItem.Socket.SendAsync(
-                    buffer.AsMemory()[..(int) ms.Length],
-                    WebSocketMessageType.Text,
-                    WebSocketMessageFlags.EndOfMessage,
-                    cancellationToken
-                );
-            }
-            finally
-            {
-                ArrayPool<byte>.Shared.Return(buffer);
-            }
-            
+            await websocketItem.Socket.SendAsync(
+                buffer,
+                WebSocketMessageType.Text,
+                WebSocketMessageFlags.EndOfMessage,
+                cancellationToken
+            );
             return true;
         }
+
         return false;
     }
 }
