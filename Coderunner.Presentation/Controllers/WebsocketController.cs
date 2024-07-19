@@ -13,10 +13,16 @@ using Microsoft.AspNetCore.Mvc;
 namespace Coderunner.Presentation.Controllers;
 
 public record RunCommand(string? Code);
+
 public record CommandWrapper(string? Command);
 
 public class WebsocketController : ControllerBase
 {
+    private static readonly JsonSerializerOptions JsonSerializerOptions = new JsonSerializerOptions()
+    {
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+    };
+
     private readonly WebsocketHolder _websocketHolder;
     private readonly ILogger<WebsocketController> _logger;
 
@@ -52,7 +58,10 @@ public class WebsocketController : ControllerBase
                     break;
                 }
 
-                var commandWrapper = JsonSerializer.Deserialize<CommandWrapper>(buffer.AsSpan()[..receiveResult.Count]);
+                var commandWrapper = JsonSerializer.Deserialize<CommandWrapper>(
+                    buffer.AsSpan()[..receiveResult.Count],
+                    JsonSerializerOptions
+                );
 
                 if (commandWrapper is null)
                 {
