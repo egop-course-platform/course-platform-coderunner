@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using System.Reflection;
 using Coderunner.Presentation.Models;
+using Coderunner.Presentation.Services;
 using Docker.DotNet;
 using Docker.DotNet.Models;
 using LinqToDB;
@@ -11,13 +12,15 @@ public class CoderunnerOutboxEventsMessageHandler : IMessageHandler<CoderunnerOu
 {
     private readonly CoderunnerDbContext _context;
     private readonly IHostEnvironment _env;
+    private readonly WebsocketHolder _websocketHolder;
     private readonly ILogger<CoderunnerOutboxEventsMessageHandler> _logger;
 
-    public CoderunnerOutboxEventsMessageHandler(ILogger<CoderunnerOutboxEventsMessageHandler> logger, CoderunnerDbContext context, IHostEnvironment env)
+    public CoderunnerOutboxEventsMessageHandler(ILogger<CoderunnerOutboxEventsMessageHandler> logger, CoderunnerDbContext context, IHostEnvironment env, WebsocketHolder websocketHolder)
     {
         _logger = logger;
         _context = context;
         _env = env;
+        _websocketHolder = websocketHolder;
     }
 
     public async Task Handle(CoderunnerOutboxEventsMessage message, CancellationToken cancellationToken)
@@ -63,16 +66,47 @@ public class CoderunnerOutboxEventsMessageHandler : IMessageHandler<CoderunnerOu
             if (buildResult.ErrorLines.Any(x => x.Contains("error")))
             {
                 _logger.LogWarning("PerformRun: Build finished with error. aborting!");
+                await _websocketHolder.TryNotify(
+                    codeRunId,
+                    new
+                    {
+                        Action = "build",
+                        Result = "aborted",
+                        ErrorLines = buildResult.ErrorLines
+                    },
+                    cancellationToken
+                );
                 return;
             }
 
             if (buildResult.OutputLines.Any(x => x.Contains("success")))
             {
                 _logger.LogWarning("PerformRun: Builder reported success. Launching app");
+                await _websocketHolder.TryNotify(
+                    codeRunId,
+                    new
+                    {
+                        Action = "build",
+                        Result = "succeeded"
+                    },
+                    cancellationToken
+                );
 
                 var runResult = await DockerRun(codeRunId, cancellationToken);
-                
+
                 _logger.LogInformation("PerformRun: run result: Output: {@output}. Errors: {@errors}", runResult.OutputLines, runResult.ErrorLines);
+
+                await _websocketHolder.TryNotify(
+                    codeRunId,
+                    new
+                    {
+                        Action = "run",
+                        Result = "succeeded"
+                    },
+                    cancellationToken
+                );
+
+                _websocketHolder.Unregister(codeRunId);
             }
             else
             {

@@ -8,6 +8,7 @@ using Coderunner.Presentation.Dtos;
 using Coderunner.Presentation.Events;
 using Coderunner.Presentation.Kafka;
 using Coderunner.Presentation.Models;
+using Coderunner.Presentation.Services;
 using LinqToDB;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.WebSockets;
@@ -21,6 +22,8 @@ builder.Host
 builder.Services.AddWarmup();
 
 builder.Services.AddControllers();
+
+builder.Services.AddSingleton<WebsocketHolder>();
 
 builder.Services.AddWebSockets(x => { x.KeepAliveInterval = TimeSpan.FromMinutes(1); });
 
