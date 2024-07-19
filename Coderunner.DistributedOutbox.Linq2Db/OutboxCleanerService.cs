@@ -41,8 +41,11 @@ public class OutboxCleanerService : BackgroundService
                     var deleted = await context.OutboxEvents
                         .Where(x => x.Date <= cleanMoment && InterestedEvents.Contains(x.Status))
                         .DeleteAsync(token: stoppingToken);
-                    
-                    _logger.LogInformation("Outbox Cleaner: Deleted {count} entries", deleted);
+
+                    if (deleted != 0)
+                    {
+                        _logger.LogInformation("Outbox Cleaner: Deleted {count} entries", deleted);
+                    }
                 }
 
                 await Task.Delay(60_000, stoppingToken);
