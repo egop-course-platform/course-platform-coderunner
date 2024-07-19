@@ -41,89 +41,96 @@ public class WebsocketController : ControllerBase
             return;
         }
 
-        using var webSocket = await HttpContext.WebSockets.AcceptWebSocketAsync();
-        _logger.LogInformation("Websocket connected");
-
-        var webSocketCancellation = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-
-        WebSocketReceiveResult receiveResult;
-        var buffer = ArrayPool<byte>.Shared.Rent(4096);
         try
         {
-            do
+            using var webSocket = await HttpContext.WebSockets.AcceptWebSocketAsync();
+            _logger.LogInformation("Websocket connected");
+
+            var webSocketCancellation = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+
+            WebSocketReceiveResult receiveResult;
+            var buffer = ArrayPool<byte>.Shared.Rent(4096);
+            try
             {
-                receiveResult = await webSocket.ReceiveAsync(buffer, webSocketCancellation.Token);
-                if (receiveResult.CloseStatus.HasValue)
+                do
                 {
-                    break;
-                }
-
-                var commandWrapper = JsonSerializer.Deserialize<CommandWrapper>(
-                    buffer.AsSpan()[..receiveResult.Count],
-                    JsonSerializerOptions
-                );
-
-                if (commandWrapper is null)
-                {
-                    _logger.LogWarning("Null request in websocket");
-                    continue;
-                }
-
-                switch (commandWrapper.Command)
-                {
-                    case "run":
+                    receiveResult = await webSocket.ReceiveAsync(buffer, webSocketCancellation.Token);
+                    if (receiveResult.CloseStatus.HasValue)
                     {
-                        // if we have deserialized the command wrapper, then this deserialization won't return null
-                        var runCodeRequest = JsonSerializer.Deserialize<RunCommand>(
-                            buffer.AsSpan()[..receiveResult.Count],
-                            JsonSerializerOptions
-                        )!;
+                        break;
+                    }
 
-                        if (runCodeRequest.Code is null)
+                    var commandWrapper = JsonSerializer.Deserialize<CommandWrapper>(
+                        buffer.AsSpan()[..receiveResult.Count],
+                        JsonSerializerOptions
+                    );
+
+                    if (commandWrapper is null)
+                    {
+                        _logger.LogWarning("Null request in websocket");
+                        continue;
+                    }
+
+                    switch (commandWrapper.Command)
+                    {
+                        case "run":
                         {
-                            _logger.LogWarning("Run command has no code");
+                            // if we have deserialized the command wrapper, then this deserialization won't return null
+                            var runCodeRequest = JsonSerializer.Deserialize<RunCommand>(
+                                buffer.AsSpan()[..receiveResult.Count],
+                                JsonSerializerOptions
+                            )!;
+
+                            if (runCodeRequest.Code is null)
+                            {
+                                _logger.LogWarning("Run command has no code");
+                                break;
+                            }
+
+                            var id = Guid.NewGuid();
+
+                            using (var transaction = new TransactionScope(TransactionScopeAsyncFlowOption.Enabled))
+                            {
+                                await context.Runs.InsertAsync(
+                                    () => new CodeRun()
+                                    {
+                                        Id = id,
+                                        Code = runCodeRequest.Code,
+                                        ScheduledAt = DateTime.UtcNow
+                                    },
+                                    token: cancellationToken
+                                );
+
+                                await outbox.AddEventAsync(new RunCodeOutboxEvent(id), cancellationToken);
+                                transaction.Complete();
+                            }
+
+                            _websocketHolder.Register(id, webSocket, webSocketCancellation);
+
                             break;
                         }
-
-                        var id = Guid.NewGuid();
-
-                        using (var transaction = new TransactionScope(TransactionScopeAsyncFlowOption.Enabled))
+                        default:
                         {
-                            await context.Runs.InsertAsync(
-                                () => new CodeRun()
-                                {
-                                    Id = id,
-                                    Code = runCodeRequest.Code,
-                                    ScheduledAt = DateTime.UtcNow
-                                },
-                                token: cancellationToken
-                            );
-
-                            await outbox.AddEventAsync(new RunCodeOutboxEvent(id), cancellationToken);
-                            transaction.Complete();
+                            _logger.LogWarning("Unknown command in websocket: {command}", commandWrapper.Command);
+                            break;
                         }
-
-                        _websocketHolder.Register(id, webSocket, webSocketCancellation);
-
-                        break;
                     }
-                    default:
-                    {
-                        _logger.LogWarning("Unknown command in websocket: {command}", commandWrapper.Command);
-                        break;
-                    }
-                }
-            } while (!webSocketCancellation.IsCancellationRequested);
+                } while (!webSocketCancellation.IsCancellationRequested);
+            }
+            finally
+            {
+                ArrayPool<byte>.Shared.Return(buffer);
+            }
+
+            await webSocket.CloseAsync(
+                WebSocketCloseStatus.NormalClosure,
+                receiveResult.CloseStatusDescription,
+                CancellationToken.None
+            );
         }
-        finally
+        catch (OperationCanceledException)
         {
-            ArrayPool<byte>.Shared.Return(buffer);
+            _logger.LogWarning("Websocket disconnected forcefully");
         }
-
-        await webSocket.CloseAsync(
-            WebSocketCloseStatus.NormalClosure,
-            receiveResult.CloseStatusDescription,
-            CancellationToken.None
-        );
     }
 }
