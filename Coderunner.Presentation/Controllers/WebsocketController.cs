@@ -28,6 +28,9 @@ public class WebsocketController : ControllerBase
                 var request = Encoding.UTF8.GetString(buffer, 0, receiveResult.Count);
                 
                 _logger.LogInformation("Received websocket request: {request}", request);
+                
+
+                receiveResult = await webSocket.ReceiveAsync(buffer, cancellationToken);
             }
 
             await webSocket.CloseAsync(
