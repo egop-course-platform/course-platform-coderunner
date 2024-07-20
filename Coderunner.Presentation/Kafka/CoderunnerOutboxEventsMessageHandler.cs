@@ -121,9 +121,19 @@ public class CoderunnerOutboxEventsMessageHandler : IMessageHandler<CoderunnerOu
             }
             else
             {
-                _logger.LogWarning("PerformRun: Builder didn't report. Noop now");
-                // TODO:
-                return;
+                _logger.LogWarning("PerformRun: Builder didn't report. {error_lines}", buildResult.ErrorLines);
+                // this is actually a compilation error
+                await _websocketHolder.TryNotify(
+                    codeRunId,
+                    new
+                    {
+                        Action = "build",
+                        Result = "failed",
+                        ErrorLines = buildResult.ErrorLines
+                    },
+                    cancellationToken
+                );
+                _websocketHolder.Unregister(codeRunId);
             }
         }
         finally
