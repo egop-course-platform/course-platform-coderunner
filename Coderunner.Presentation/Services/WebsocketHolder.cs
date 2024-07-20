@@ -9,6 +9,11 @@ public record WebsocketItem(WebSocket Socket, CancellationTokenSource Cancellati
 
 public class WebsocketHolder
 {
+    private static readonly JsonSerializerOptions JsonSerializerOptions = new JsonSerializerOptions()
+    {
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+    };
+
     private readonly ILogger<WebsocketHolder> _logger;
     private readonly ConcurrentDictionary<Guid, WebsocketItem> _webSockets = new();
 
@@ -55,7 +60,7 @@ public class WebsocketHolder
                 return false;
             }
 
-            var buffer = JsonSerializer.SerializeToUtf8Bytes(data);
+            var buffer = JsonSerializer.SerializeToUtf8Bytes(data, JsonSerializerOptions);
 
             await websocketItem.Socket.SendAsync(
                 buffer,
