@@ -71,7 +71,7 @@ public class CoderunnerOutboxEventsMessageHandler : IMessageHandler<CoderunnerOu
 
             await CopySrcFiles(srcPath, code, cancellationToken);
 
-            var buildResult = await DockerBuild(codeRunId, cancellationToken);
+            var buildResult = await DockerBuildAlt(codeRunId, cancellationToken);
 
             if (buildResult.ErrorLines.Any(x => x.Contains("error")))
             {
@@ -172,6 +172,14 @@ public class CoderunnerOutboxEventsMessageHandler : IMessageHandler<CoderunnerOu
                             $"-q " +
                             $"mcr.microsoft.com/dotnet/sdk:8.0 " +
                             $"sh -c \"dotnet publish \\\"src/Runner.csproj\\\" -v quiet -c Release -o /app/publish && echo success\"";
+
+        return await ExecCli("docker", dockerRunArgs, cancellationToken);
+    }
+
+    private async Task<(List<string> OutputLines, List<string> ErrorLines)> DockerBuildAlt(Guid codeRunId, CancellationToken cancellationToken)
+    {
+        var dockerRunArgs = $"exec -i builder " +
+                            $"sh -c \"dotnet publish \\\"/runs/{codeRunId}/src/Runner.csproj\\\" -v quiet -c Release -o /runs/{codeRunId}/artifacts && echo success\"";
 
         return await ExecCli("docker", dockerRunArgs, cancellationToken);
     }

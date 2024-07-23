@@ -10,11 +10,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-#    deploy: 
-#      resources: 
-#        limits:
-#          cpus: 0.5
-#          memory: 50m
+
     environment:
       ASPNETCORE_URLS: "http://+:80"
       ConnectionStrings__Kafka: "kafka:9092"
@@ -35,5 +31,20 @@ services:
       - /home/actions/course-platform/runs:/app/runs
     ports: 
       - "10080:80"
+    networks: 
+      - course-platform
+  
+  builder:
+    container_name: builder
+    image: mcr.microsoft.com/dotnet/sdk:8.0
+    command: sh
+    deploy:
+      resources:
+        limits:
+          cpus: "1"
+          memory: "200M"
+    restart: unless-stopped
+    volumes:
+      - "/home/actions/course-platform/runs:/runs"
     networks: 
       - course-platform
