@@ -5,11 +5,11 @@ using System.Text.Json;
 
 namespace Coderunner.Presentation.Services;
 
-public record WebsocketItem(WebSocket Socket, CancellationTokenSource CancellationTokenSource);
+public record WebsocketItem(WebSocket Socket, TaskCompletionSource Tcs);
 
 public class WebsocketHolder
 {
-    private static readonly JsonSerializerOptions JsonSerializerOptions = new JsonSerializerOptions()
+    private static readonly JsonSerializerOptions JsonSerializerOptions = new()
     {
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase
     };
@@ -22,18 +22,11 @@ public class WebsocketHolder
         _logger = logger;
     }
 
-    public bool Register(Guid codeRunId, WebSocket webSocket, CancellationTokenSource cancellationTokenSource)
+    public bool Register(Guid codeRunId, WebSocket webSocket, TaskCompletionSource tcs)
     {
         _logger.LogInformation("Registering websocket for {coderun_id}", codeRunId);
-        cancellationTokenSource.Token.Register(
-            () =>
-            {
-                _logger.LogInformation("Executing cancellation of websocket for {coderun_id}", codeRunId);
-                _webSockets.TryRemove(codeRunId, out _);
-            }
-        );
 
-        var result = _webSockets.TryAdd(codeRunId, new WebsocketItem(webSocket, cancellationTokenSource));
+        var result = _webSockets.TryAdd(codeRunId, new WebsocketItem(webSocket, tcs));
 
         return result;
     }
@@ -41,9 +34,14 @@ public class WebsocketHolder
     public bool Unregister(Guid codeRunId)
     {
         _logger.LogInformation("Unregistering websocket for {coderun_id}", codeRunId);
-        if (_webSockets.TryGetValue(codeRunId, out var websocketItem))
+        if (_webSockets.TryRemove(codeRunId, out var websocketItem))
         {
-            websocketItem.CancellationTokenSource.Cancel();
+            if (!websocketItem.Tcs.Task.IsCompleted)
+            {
+                _logger.LogInformation("Cancelling websocket by holder unregister");
+                websocketItem.Tcs.SetResult();
+            }
+
             return true;
         }
 
@@ -55,7 +53,7 @@ public class WebsocketHolder
         _logger.LogInformation("Notifying websocket for {coderun_id}", codeRunId);
         if (_webSockets.TryGetValue(codeRunId, out var websocketItem))
         {
-            if (websocketItem.CancellationTokenSource.IsCancellationRequested)
+            if (websocketItem.Tcs.Task.IsCompleted)
             {
                 return false;
             }

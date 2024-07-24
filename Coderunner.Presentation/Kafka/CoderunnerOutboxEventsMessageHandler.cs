@@ -187,7 +187,7 @@ public class CoderunnerOutboxEventsMessageHandler : IMessageHandler<CoderunnerOu
     private async Task<(List<string> OutputLines, List<string> ErrorLines)> DockerBuildAlt(Guid codeRunId, CancellationToken cancellationToken)
     {
         var dockerRunArgs = $"exec -i builder " +
-                            $"sh -c \"dotnet publish \\\"/runs/{codeRunId}/src/Runner.csproj\\\" -v quiet -c Debug --no-restore -o /runs/{codeRunId}/artifacts && echo success\"";
+                            $"sh -c \"dotnet publish \\\"/runs/{codeRunId}/src/Runner.csproj\\\" -v quiet -c Debug -o /runs/{codeRunId}/artifacts && echo success\"";
 
         return await ExecCli("docker", dockerRunArgs, cancellationToken);
     }
