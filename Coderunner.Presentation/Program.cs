@@ -50,6 +50,8 @@ builder.Services
 
 var app = builder.Build();
 
+app.UseSerilogRequestLogging();
+
 app.UsePathBase("/api/coderunner");
 
 app.MapPost(
