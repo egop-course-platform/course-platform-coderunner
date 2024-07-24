@@ -15,6 +15,9 @@ using Microsoft.AspNetCore.WebSockets;
 using Serilog;
 
 var builder = WebApplication.CreateBuilder(args);
+
+builder.Configuration.AddJsonFile("appsettings.secret.json", true, true);
+
 builder.Host
     .UseSerilog(
         (builderContext, config) => { config.ReadFrom.Configuration(builderContext.Configuration); }
