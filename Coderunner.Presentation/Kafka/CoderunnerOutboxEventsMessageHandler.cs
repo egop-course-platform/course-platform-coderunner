@@ -102,7 +102,7 @@ public class CoderunnerOutboxEventsMessageHandler : IMessageHandler<CoderunnerOu
                     cancellationToken
                 );
 
-                var runResult = await DockerRun(codeRunId, cancellationToken);
+                var runResult = await DockerRunAlt(codeRunId, cancellationToken);
 
                 _logger.LogInformation("PerformRun: run result: Output: {@output}. Errors: {@errors}", runResult.OutputLines, runResult.ErrorLines);
 
@@ -155,6 +155,14 @@ public class CoderunnerOutboxEventsMessageHandler : IMessageHandler<CoderunnerOu
                             $"-q " +
                             $"mcr.microsoft.com/dotnet/runtime:8.0 " +
                             $"sh -c \"dotnet /app/Runner.dll\"";
+
+        return await ExecCli("docker", dockerRunArgs, cancellationToken);
+    }
+
+    private async Task<(List<string> OutputLines, List<string> ErrorLines)> DockerRunAlt(Guid codeRunId, CancellationToken cancellationToken)
+    {
+        var dockerRunArgs = $"exec -i runner " +
+                            $"sh -c \"dotnet /runs/{codeRunId}/artifacts/Runner.dll";
 
         return await ExecCli("docker", dockerRunArgs, cancellationToken);
     }

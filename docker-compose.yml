@@ -48,3 +48,18 @@ services:
       - "/home/actions/course-platform/runs:/runs"
     networks: 
       - course-platform
+
+  runner:
+    container_name: runner
+    image: mcr.microsoft.com/dotnet/runtime:8.0
+    tty: true
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: "100M"
+    restart: unless-stopped
+    volumes:
+      - "/home/actions/course-platform/runs:/runs"
+    networks: 
+      - course-platform
